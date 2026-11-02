@@ -1,0 +1,195 @@
+.mapping-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.function-mappings {
+  display: grid;
+  gap: 14px;
+}
+
+.mapping-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mapping-card-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mapping-card-heading span {
+  color: #697572;
+  font-size: var(--size-regular-text);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mapping-card-heading strong {
+  color: var(--mint-bright);
+  font-family: var(--font-tertiary-title);
+  font-size: var(--size-tertiary-title);
+  font-weight: 400;
+}
+
+sup {
+  color: var(--mint);
+  font-size: var(--size-regular-text);
+}
+
+.arity-badge {
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+.mapping-header,
+.mapping-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.8fr) minmax(130px, 1.2fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.mapping-header {
+  min-height: 27px;
+  padding: 0 12px;
+  color: #56615f;
+  font-size: var(--size-regular-text);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mapping-scroll {
+  max-height: 211px;
+  overflow-y: auto;
+  scrollbar-color: #313b38 transparent;
+  scrollbar-width: thin;
+}
+
+.mapping-row {
+  min-height: 42px;
+  padding: 5px 10px 5px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.mapping-row code,
+.environment-card code {
+  color: #b5c0bd;
+  font-family: var(--font-regular-text);
+  font-size: var(--size-regular-text);
+}
+
+select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  outline: 0;
+  color: #d7e1de;
+  background: #151c22;
+  font-size: var(--size-regular-text);
+}
+
+select:focus {
+  border-color: rgba(121, 227, 188, 0.45);
+}
+
+.row-overflow {
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  color: #66716f;
+  font-size: var(--size-regular-text);
+  text-align: center;
+}
+
+.inline-empty {
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: var(--size-regular-text);
+  text-align: center;
+}
+
+.relation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.relation-card {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.relation-card > strong {
+  display: block;
+  margin-bottom: 7px;
+  color: #dbe5e2;
+  font-family: var(--font-tertiary-title);
+  font-size: var(--size-tertiary-title);
+  font-weight: 400;
+}
+
+.tuple-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 3px 0;
+}
+
+.tuple-row input {
+  width: calc(100% - 30px);
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  outline: 0;
+  color: #aeb9b6;
+  background: rgba(255, 255, 255, 0.025);
+  font-family: var(--font-regular-text);
+  font-size: var(--size-regular-text);
+}
+
+.tuple-row input:focus {
+  border-color: rgba(121, 227, 188, 0.3);
+}
+
+.tiny-add {
+  margin-top: 7px;
+  padding: 0;
+  font-size: var(--size-regular-text);
+}
+
+.environment-card {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 13px;
+  border: 1px solid rgba(121, 227, 188, 0.12);
+  border-radius: 10px;
+  background: rgba(121, 227, 188, 0.025);
+}
+
+.environment-card label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.environment-empty {
+  color: #66716f;
+}
+

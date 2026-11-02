@@ -1,0 +1,106 @@
+.parameter-drawer {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  width: var(--drawer-width);
+  height: 100%;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0e1217;
+  box-shadow: -24px 0 80px rgba(0, 0, 0, 0.34);
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--motion-layout-duration) var(--motion-layout-ease);
+  will-change: transform;
+}
+
+.parameter-drawer.closed {
+  transform: translate3d(100%, 0, 0);
+}
+
+.drawer-toggle {
+  position: absolute;
+  top: 50%;
+  left: -38px;
+  z-index: 3;
+  display: grid;
+  width: 38px;
+  height: 74px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  color: var(--muted-strong);
+  background: #11161c;
+  box-shadow: -10px 0 28px rgba(0, 0, 0, 0.25);
+  transform: translateY(-50%);
+  transition: 160ms ease;
+}
+
+.drawer-toggle:hover {
+  color: var(--mint);
+  background: #151c22;
+}
+
+.drawer-content {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: #37423f transparent;
+  scrollbar-width: thin;
+}
+
+.drawer-header {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 86px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(14, 18, 23, 0.98);
+}
+
+.drawer-header h2 {
+  margin: 3px 0 0;
+  font-family: var(--font-secondary-title);
+  font-size: var(--size-secondary-title);
+  font-weight: 400;
+}
+
+.draft-badge {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: var(--size-regular-text);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.drawer-intro {
+  display: flex;
+  gap: 10px;
+  margin: 20px 24px 6px;
+  padding: 12px;
+  border: 1px solid rgba(121, 227, 188, 0.12);
+  border-radius: 11px;
+  color: var(--mint);
+  background: rgba(121, 227, 188, 0.035);
+}
+
+.drawer-intro svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.drawer-intro p {
+  margin: 0;
+  color: #95a29f;
+  font-size: var(--size-regular-text);
+  line-height: 1.55;
+}
+

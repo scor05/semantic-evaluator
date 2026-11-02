@@ -1,0 +1,133 @@
+.definition-block {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.table-header,
+.definition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px 30px;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-header {
+  min-height: 30px;
+  padding: 0 9px;
+  border-bottom: 1px solid var(--line);
+  color: #5e6967;
+  font-size: var(--size-regular-text);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.definition-row {
+  min-height: 40px;
+  padding: 4px 7px 4px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.definition-row input {
+  width: 100%;
+  height: 29px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  outline: 0;
+  background: transparent;
+}
+
+.definition-row input:hover,
+.definition-row input:focus {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.symbol-input {
+  font-family: var(--font-tertiary-title);
+  font-size: var(--size-tertiary-title);
+}
+
+.arity-input {
+  padding: 0 5px 0 9px;
+  color: #aab6b3;
+  font-size: var(--size-regular-text);
+}
+
+.arity-input::-webkit-inner-spin-button,
+.arity-input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.arity-input[type="number"] {
+  appearance: textfield;
+}
+
+.arity-stepper {
+  display: grid;
+  min-width: 0;
+  height: 34px;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.definition-row .arity-stepper .arity-input {
+  height: 32px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.arity-stepper-buttons {
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  border-left: 1px solid var(--line);
+}
+
+.arity-stepper-buttons button {
+  display: grid;
+  min-width: 0;
+  padding: 0;
+  place-items: center;
+  color: #889490;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.arity-stepper-buttons button:first-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.arity-stepper-buttons button:hover:not(:disabled) {
+  color: var(--mint-bright);
+  background: rgba(121, 227, 188, 0.1);
+}
+
+.arity-stepper-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #82908d;
+  background: transparent;
+}
+
+.add-row {
+  width: 100%;
+  min-height: 36px;
+  justify-content: center;
+  font-size: var(--size-regular-text);
+}
+
+.add-row:hover {
+  color: var(--mint);
+}

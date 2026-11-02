@@ -1,0 +1,27 @@
+.toast {
+  position: fixed;
+  z-index: 80;
+  bottom: 24px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(440px, calc(100% - 36px));
+  padding: 10px 14px;
+  border: 1px solid rgba(121, 227, 188, 0.24);
+  border-radius: 10px;
+  color: #cfe8df;
+  background: rgba(13, 31, 25, 0.94);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  font-size: var(--size-regular-text);
+  transform: translateX(-50%);
+  animation: toast-in 200ms ease both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+

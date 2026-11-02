@@ -1,0 +1,45 @@
+.drawer-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 8px;
+  padding: 17px 22px;
+  border-top: 1px solid var(--line);
+  background: rgba(14, 18, 23, 0.98);
+}
+
+.drawer-actions button {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 9px;
+  font-size: var(--size-regular-text);
+  font-weight: 650;
+}
+
+.secondary-action {
+  border: 1px solid var(--line);
+  color: #98a3a0;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.secondary-action:hover {
+  color: #d3dcda;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.primary-action {
+  color: #082218;
+  background: var(--mint);
+  box-shadow: 0 8px 28px rgba(121, 227, 188, 0.13);
+}
+
+.primary-action:hover {
+  background: var(--mint-bright);
+  transform: translateY(-1px);
+}
+

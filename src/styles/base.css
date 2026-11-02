@@ -1,0 +1,80 @@
+:root {
+  color: #f3f7f6;
+  background: #080b0f;
+  --font-main-header: "Cambria Math", "STIX Two Math", Georgia, serif;
+  --font-secondary-title: Georgia, "Times New Roman", serif;
+  --font-tertiary-title: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-regular-text: Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --size-main-header: 2rem;
+  --size-secondary-title: 1.5rem;
+  --size-tertiary-title: 1.125rem;
+  --size-regular-text: 1rem;
+  font-family: var(--font-regular-text);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --bg: #080b0f;
+  --panel: #10151b;
+  --panel-soft: #151b22;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.15);
+  --muted: #8f9b9a;
+  --muted-strong: #b8c1bf;
+  --text: #f4f7f6;
+  --mint: #79e3bc;
+  --mint-bright: #b4ffe3;
+  --mint-dark: #0e7d60;
+  --danger: #ff7b78;
+  --drawer-width: 430px;
+  --section-padding-block: 26px 30px;
+  --section-padding-inline: 28px;
+  --section-heading-gap: 22px;
+  --section-separation: 5px;
+  --subsection-spacing: 27px;
+  --subsection-content-gap: 30px;
+  --subsection-heading-gap: 9px;
+  --motion-layout-duration: 300ms;
+  --motion-layout-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+

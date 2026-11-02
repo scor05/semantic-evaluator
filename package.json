@@ -1,17 +1,25 @@
 {
   "name": "semantic-evaluator",
-  "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b"
+  },
   "devDependencies": {
-    "@types/bun": "^1.4.4",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
     "@types/three": "^0.187.0",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "^5.9.3",
     "vite": "^8.3.5"
   },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
   "dependencies": {
+    "lucide-react": "^0.552.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "three": "^0.187.0"
   }
 }

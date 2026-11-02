@@ -1,0 +1,50 @@
+.eyebrow {
+  display: block;
+  color: var(--mint);
+  font-size: var(--size-regular-text);
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+kbd {
+  margin-left: 8px;
+  padding: 4px 7px;
+  border: 1px solid var(--line-strong);
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  color: #cbd3d1;
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--font-regular-text);
+  font-size: var(--size-regular-text);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+}
+
+.icon-button.subtle {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: #596361;
+  background: transparent;
+}
+
+.icon-button.subtle:hover {
+  color: var(--danger);
+  background: rgba(255, 123, 120, 0.07);
+}
+
+.tiny-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #82908d;
+  background: transparent;
+}
+
+.tiny-add:hover {
+  color: var(--mint);
+}
