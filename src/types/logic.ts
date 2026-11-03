@@ -13,12 +13,4 @@ export type FunctionInterpretation = {
     inputCount: number;
 };
 
-export type TreeNode = {
-    id: string;
-    label: string;
-    kind: "quantifier" | "connective" | "predicate";
-    x: number;
-    y: number;
-};
-
 export type DemonstrationResult = boolean | null;

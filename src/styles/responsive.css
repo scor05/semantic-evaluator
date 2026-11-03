@@ -3,16 +3,11 @@
     --drawer-width: 390px;
   }
 
-  .tree-node {
-    min-width: 62px;
-    min-height: 46px;
-    padding: 8px 13px;
-  }
-
   .interaction-hint span,
   .interaction-hint kbd {
     display: none;
   }
+
 }
 
 @media (max-width: 760px) {
@@ -70,24 +65,6 @@
   .tree-scene {
     top: 88px;
     bottom: 145px;
-  }
-
-  .tree-node {
-    min-width: 56px;
-    min-height: 42px;
-    padding: 7px 10px;
-    border-radius: 12px;
-    font-size: var(--size-tertiary-title);
-  }
-
-  .node-predicate .tree-node {
-    min-width: 72px;
-  }
-
-  .node-palette {
-    left: 50%;
-    top: calc(100% + 44px);
-    transform: translateX(-50%);
   }
 
   .interaction-hint {
@@ -167,4 +144,3 @@
     transition-duration: 0.01ms !important;
   }
 }
-

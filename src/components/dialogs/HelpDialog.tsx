@@ -31,12 +31,12 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
 
                 <div className="controls-list">
                     <div className="control-row">
-                        <div className="key-group arrow-keys" aria-label="Flechas">
-                            <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>
+                        <div className="key-group arrow-keys" aria-label="Flechas verticales">
+                            <kbd>↑</kbd><kbd>↓</kbd>
                         </div>
                         <div>
-                            <strong>Desplazar cámara</strong>
-                            <span>Mueve la vista sobre el plano.</span>
+                            <strong>Desplazar cámara verticalmente</strong>
+                            <span>Mueve la cámara y su objetivo hacia arriba o abajo. Usa Shift para avanzar más rápido.</span>
                         </div>
                     </div>
                     {controls.map((control) => (
@@ -60,7 +60,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                 </div>
 
                 <div className="mock-notice">
-                    <Info size={16} /> Estos atajos se conectarán con la cámara 3D.
+                    <Info size={16} /> También puedes arrastrar para orbitar y usar la rueda para acercarte.
                 </div>
             </div>
         </div>

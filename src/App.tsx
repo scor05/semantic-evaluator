@@ -7,6 +7,11 @@ import { LanguageSection } from "./components/parameters/LanguageSection";
 import { ParameterDrawer } from "./components/parameters/ParameterDrawer";
 import { Toast } from "./components/ui/Toast";
 import { Workspace } from "./components/workspace/Workspace";
+import {
+    parseExpression,
+    serializeSyntaxTree,
+    type SyntaxNode,
+} from "./domain/syntaxTree";
 import type {
     DemonstrationResult,
     FunctionDefinition,
@@ -15,7 +20,7 @@ import type {
 import { cartesianPower } from "./utils/cartesianPower";
 
 function App() {
-    const [drawerOpen, setDrawerOpen] = useState(true);
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const [domain, setDomain] = useState(["0", "1", "2"]);
     const [domainDraft, setDomainDraft] = useState("");
     const [functions, setFunctions] = useState<FunctionDefinition[]>([
@@ -27,6 +32,12 @@ function App() {
         { id: 2, name: "Q", arity: 1 },
     ]);
     const [formula, setFormula] = useState("∀x(P(x) → ∃y Q(x,y))");
+    const [syntaxTree, setSyntaxTree] = useState<SyntaxNode | null>(() =>
+        parseExpression(formula, {
+            functions: functions.map(({ name }) => name),
+            predicates: predicates.map(({ name }) => name),
+        })
+    );
     const [renderedFormula, setRenderedFormula] = useState(formula);
     const [functionOutputs, setFunctionOutputs] = useState<Record<string, string>>({});
     const [predicateTuples, setPredicateTuples] = useState<Record<string, string[]>>({
@@ -35,7 +46,8 @@ function App() {
     });
     const [environmentValue, setEnvironmentValue] = useState("1");
     const [hasFreeVariables, setHasFreeVariables] = useState(false);
-    const [editMode, setEditMode] = useState(false);
+    const [controlEditMode, setControlEditMode] = useState(false);
+    const [editModeLocked, setEditModeLocked] = useState(false);
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
     const [helpOpen, setHelpOpen] = useState(false);
     const [evidenceOpen, setEvidenceOpen] = useState(false);
@@ -43,7 +55,19 @@ function App() {
         useState<DemonstrationResult>(null);
     const [toast, setToast] = useState<string | null>(null);
     const formulaInputRef = useRef<HTMLInputElement>(null);
+    const editModeLockedRef = useRef(false);
     const nextId = useRef(10);
+    const editMode = controlEditMode || editModeLocked;
+
+    const setEditModeLock = (locked: boolean) => {
+        editModeLockedRef.current = locked;
+        setEditModeLocked(locked);
+    };
+
+    const selectNode = (nodeId: string | null) => {
+        setSelectedNode(nodeId);
+        if (!nodeId) setEditModeLock(false);
+    };
 
     const functionInterpretations = useMemo(
         () =>
@@ -57,7 +81,7 @@ function App() {
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Control") setEditMode(true);
+            if (event.key === "Control") setControlEditMode(true);
             if (event.key === "Escape") {
                 setHelpOpen(false);
                 setEvidenceOpen(false);
@@ -65,13 +89,13 @@ function App() {
         };
         const onKeyUp = (event: KeyboardEvent) => {
             if (event.key === "Control") {
-                setEditMode(false);
-                setSelectedNode(null);
+                setControlEditMode(false);
+                if (!editModeLockedRef.current) setSelectedNode(null);
             }
         };
         const resetEditMode = () => {
-            setEditMode(false);
-            setSelectedNode(null);
+            setControlEditMode(false);
+            if (!editModeLockedRef.current) setSelectedNode(null);
         };
 
         window.addEventListener("keydown", onKeyDown);
@@ -153,9 +177,23 @@ function App() {
             setToast("Escribe una fórmula antes de visualizarla.");
             return;
         }
-        setRenderedFormula(formula.trim());
+        const nextFormula = formula.trim();
+        setSyntaxTree(parseExpression(nextFormula, {
+            functions: functions.map(({ name }) => name.trim()).filter(Boolean),
+            predicates: predicates.map(({ name }) => name.trim()).filter(Boolean),
+        }));
+        setSelectedNode(null);
+        setRenderedFormula(nextFormula);
         setDemonstrationResult(true);
         setToast("Vista actualizada. El motor semántico se conectará después.");
+    };
+
+    const updateTree = (tree: SyntaxNode) => {
+        const nextFormula = serializeSyntaxTree(tree);
+        setSyntaxTree(tree);
+        setFormula(nextFormula);
+        setRenderedFormula(nextFormula);
+        setDemonstrationResult(null);
     };
 
     return (
@@ -163,21 +201,25 @@ function App() {
             <Workspace
                 editMode={editMode}
                 formula={renderedFormula}
-                onFeedback={(message) => {
-                    setSelectedNode(null);
-                    setToast(message);
-                }}
+                functionSymbols={functions.map(({ name }) => name.trim()).filter(Boolean)}
                 onOpenEvidence={() => setEvidenceOpen(true)}
                 onOpenHelp={() => setHelpOpen(true)}
-                onSelectNode={setSelectedNode}
+                onEditModeLockChange={setEditModeLock}
+                onSelectNode={selectNode}
+                onTreeChange={updateTree}
+                predicateSymbols={predicates.map(({ name }) => name.trim()).filter(Boolean)}
                 result={demonstrationResult}
                 selectedNode={selectedNode}
+                tree={syntaxTree}
             />
 
             <ParameterDrawer
                 onClear={() => {
                     setFormula("");
                     setRenderedFormula("");
+                    setSyntaxTree(null);
+                    setSelectedNode(null);
+                    setEditModeLock(false);
                     setDemonstrationResult(null);
                 }}
                 onEvaluate={evaluateMock}
