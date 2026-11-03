@@ -41,9 +41,6 @@ export function ParameterDrawer({
                     <button className="secondary-action" onClick={onClear} type="button">
                         Limpiar
                     </button>
-                    <button className="primary-action" onClick={onEvaluate} type="button">
-                        <Sparkles size={17} /> Visualizar fórmula
-                    </button>
                 </div>
             </div>
         </aside>

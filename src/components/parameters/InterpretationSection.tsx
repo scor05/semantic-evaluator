@@ -13,14 +13,13 @@ type InterpretationSectionProps = {
     functionOutputs: Record<string, string>;
     predicates: PredicateDefinition[];
     predicateTuples: Record<string, string[]>;
-    hasFreeVariables: boolean;
-    environmentValue: string;
+    freeVariables: string[];
+    environmentValues: Record<string, string>;
     onFunctionOutputChange: (key: string, value: string) => void;
     onPredicateTupleChange: (name: string, index: number, value: string) => void;
     onAddPredicateTuple: (predicate: PredicateDefinition) => void;
     onRemovePredicateTuple: (name: string, index: number) => void;
-    onToggleFreeVariables: () => void;
-    onEnvironmentChange: (value: string) => void;
+    onEnvironmentChange: (variable: string, value: string) => void;
 };
 
 export function InterpretationSection({
@@ -29,13 +28,12 @@ export function InterpretationSection({
     functionOutputs,
     predicates,
     predicateTuples,
-    hasFreeVariables,
-    environmentValue,
+    freeVariables,
+    environmentValues,
     onFunctionOutputChange,
     onPredicateTupleChange,
     onAddPredicateTuple,
     onRemovePredicateTuple,
-    onToggleFreeVariables,
     onEnvironmentChange,
 }: InterpretationSectionProps) {
     return (
@@ -147,30 +145,29 @@ export function InterpretationSection({
             <div className="interpretation-group">
                 <div className="subsection-title interpretation-subsection-title">
                     <span>Entorno</span>
-                    <button
-                        aria-label="Alternar variables libres"
-                        aria-pressed={hasFreeVariables}
-                        className="subsection-state-toggle"
-                        onClick={onToggleFreeVariables}
-                        type="button"
-                    />
+                    <span>{freeVariables.length}</span>
                 </div>
-                {hasFreeVariables ? (
+                {freeVariables.length > 0 ? (
                     <div className="environment-card">
-                        <label>
-                            <code>y ↦</code>
-                            <select
-                                aria-label="Valor de la variable libre y"
-                                value={environmentValue}
-                                onChange={(event) => onEnvironmentChange(event.target.value)}
-                            >
-                                {domain.map((value) => (
-                                    <option key={value} value={value}>
-                                        {value}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        {freeVariables.map((variable) => (
+                            <label key={variable}>
+                                <code>{variable} ↦</code>
+                                <select
+                                    aria-label={`Valor de la variable libre ${variable}`}
+                                    value={environmentValues[variable] ?? ""}
+                                    onChange={(event) =>
+                                        onEnvironmentChange(variable, event.target.value)
+                                    }
+                                >
+                                    <option value="">—</option>
+                                    {domain.map((value) => (
+                                        <option key={value} value={value}>
+                                            {value}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        ))}
                     </div>
                 ) : (
                     <div className="inline-empty environment-empty">No hay variables libres</div>

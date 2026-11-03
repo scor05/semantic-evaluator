@@ -1,8 +1,8 @@
 .tree-scene {
   position: absolute;
   z-index: 2;
-  top: 105px;
-  bottom: 135px;
+  top: calc(var(--workspace-header-height) + 19px);
+  bottom: calc(var(--workspace-bottom-bar-height) + 25px);
   left: 3.5%;
   width: 93%;
   contain: layout style;

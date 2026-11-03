@@ -21,6 +21,7 @@ const nodeColors: Record<SyntaxNodeKind, number> = {
     connective: 0xe2ebe8,
     predicate: 0x79e3bc,
     function: 0xb9d9cf,
+    value: 0xf0c674,
     term: 0xf0f7f5,
 };
 

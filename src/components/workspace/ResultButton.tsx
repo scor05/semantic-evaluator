@@ -4,12 +4,17 @@ import "./workspace-controls.css";
 
 type ResultButtonProps = {
     result: DemonstrationResult;
+    environmentMissing: boolean;
     onOpen: () => void;
 };
 
-export function ResultButton({ result, onOpen }: ResultButtonProps) {
-    const state = result === null ? "neutral" : result ? "true" : "false";
-    const label = result === null ? "Sin evaluar" : result ? "Verdadero" : "Falso";
+export function ResultButton({ result, environmentMissing, onOpen }: ResultButtonProps) {
+    const state = environmentMissing
+        ? "warning"
+        : result === null ? "neutral" : result ? "true" : "false";
+    const label = environmentMissing
+        ? "Entorno faltante"
+        : result === null ? "Sin evaluar" : result ? "Verdadero" : "Falso";
 
     return (
         <button
@@ -19,7 +24,9 @@ export function ResultButton({ result, onOpen }: ResultButtonProps) {
             type="button"
         >
             <span className="result-indicator" aria-hidden="true">
-                {result === null ? (
+                {environmentMissing ? (
+                    <span>!</span>
+                ) : result === null ? (
                     <span>?</span>
                 ) : result ? (
                     <Check size={18} strokeWidth={2.5} />

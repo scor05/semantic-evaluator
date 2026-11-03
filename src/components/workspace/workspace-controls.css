@@ -1,12 +1,11 @@
 .interaction-hint {
-  position: absolute;
+  position: relative;
   z-index: 7;
-  bottom: 34px;
-  left: 32px;
   display: flex;
   align-items: center;
   gap: 11px;
   max-width: 390px;
+  margin-left: 32px;
   padding: 10px 11px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -41,7 +40,7 @@
   position: absolute;
   z-index: 8;
   right: 32px;
-  bottom: 33px;
+  bottom: 34px;
   display: flex;
   width: 44px;
   height: 44px;
@@ -85,6 +84,11 @@
   background: rgba(28, 13, 14, 0.88);
 }
 
+.evidence-button.is-warning {
+  border-color: rgba(241, 169, 75, 0.48);
+  background: rgba(40, 27, 11, 0.92);
+}
+
 .result-indicator {
   display: grid;
   width: 34px;
@@ -109,6 +113,11 @@
 .is-false .result-indicator {
   color: #2d0908;
   background: var(--danger);
+}
+
+.is-warning .result-indicator {
+  color: #301b05;
+  background: #f1a94b;
 }
 
 .result-copy {

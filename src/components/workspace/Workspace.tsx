@@ -11,6 +11,8 @@ type WorkspaceProps = {
     formula: string;
     tree: SyntaxNode | null;
     editMode: boolean;
+    environmentMissing: boolean;
+    freeVariables: string[];
     functionSymbols: string[];
     predicateSymbols: string[];
     selectedNode: string | null;
@@ -26,6 +28,8 @@ export function Workspace({
     formula,
     tree,
     editMode,
+    environmentMissing,
+    freeVariables,
     functionSymbols,
     predicateSymbols,
     selectedNode,
@@ -38,7 +42,11 @@ export function Workspace({
 }: WorkspaceProps) {
     return (
         <section className="workspace" aria-label="Vista del árbol sintáctico">
-            <WorkspaceHeader formula={formula} onOpenHelp={onOpenHelp} />
+            <WorkspaceHeader
+                formula={formula}
+                freeVariables={freeVariables}
+                onOpenHelp={onOpenHelp}
+            />
             <SyntaxTree
                 editMode={editMode}
                 functionSymbols={functionSymbols}
@@ -49,8 +57,14 @@ export function Workspace({
                 selectedNode={selectedNode}
                 tree={tree}
             />
-            <InteractionHint editMode={editMode} />
-            <ResultButton onOpen={onOpenEvidence} result={result} />
+            <div className="workspace-bottom-bar">
+                <InteractionHint editMode={editMode} />
+                <ResultButton
+                    environmentMissing={environmentMissing}
+                    onOpen={onOpenEvidence}
+                    result={result}
+                />
+            </div>
         </section>
     );
 }

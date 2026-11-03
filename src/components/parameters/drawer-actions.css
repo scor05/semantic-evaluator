@@ -1,10 +1,10 @@
 .drawer-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: sticky;
   bottom: 0;
   z-index: 4;
-  display: grid;
-  grid-template-columns: 0.7fr 1.3fr;
-  gap: 8px;
   padding: 17px 22px;
   border-top: 1px solid var(--line);
   background: rgba(14, 18, 23, 0.98);
@@ -23,6 +23,7 @@
 
 .secondary-action {
   border: 1px solid var(--line);
+  width: 100%;
   color: #98a3a0;
   background: rgba(255, 255, 255, 0.025);
 }
@@ -42,4 +43,3 @@
   background: var(--mint-bright);
   transform: translateY(-1px);
 }
-

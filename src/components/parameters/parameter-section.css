@@ -163,14 +163,3 @@
   margin: 0;
 }
 
-.subsection-state-toggle {
-  padding: 0;
-  background: transparent;
-  transition: color 140ms ease;
-}
-
-.subsection-state-toggle:hover,
-.subsection-state-toggle[aria-pressed="true"] {
-  color: var(--mint);
-}
-

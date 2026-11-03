@@ -6,7 +6,7 @@
   width: var(--drawer-width);
   height: 100%;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0e1217;
+  background: var(--sidebar-bg);
   box-shadow: -24px 0 80px rgba(0, 0, 0, 0.34);
   backface-visibility: hidden;
   transform: translate3d(0, 0, 0);
@@ -103,4 +103,3 @@
   font-size: var(--size-regular-text);
   line-height: 1.55;
 }
-

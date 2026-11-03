@@ -176,7 +176,9 @@ select:focus {
 .environment-card {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
   padding: 13px;
   border: 1px solid rgba(121, 227, 188, 0.12);
   border-radius: 10px;
@@ -192,4 +194,3 @@ select:focus {
 .environment-empty {
   color: #66716f;
 }
-
