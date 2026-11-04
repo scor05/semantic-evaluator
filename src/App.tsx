@@ -120,7 +120,7 @@ function App() {
 
     const selectNode = (nodeId: string | null) => {
         setSelectedNode(nodeId);
-        if (!nodeId) setEditModeLock(false);
+        setEditModeLock(nodeId !== null);
     };
 
     const functionInterpretations = useMemo(
@@ -385,7 +385,6 @@ function App() {
                 functionSymbols={functionSymbols}
                 onOpenEvidence={() => setEvidenceOpen(true)}
                 onOpenHelp={() => setHelpOpen(true)}
-                onEditModeLockChange={setEditModeLock}
                 onSelectNode={selectNode}
                 onTreeChange={updateTree}
                 predicateSymbols={predicateSymbols}

@@ -22,7 +22,6 @@ type SyntaxTreeProps = {
     functionSymbols: string[];
     predicateSymbols: string[];
     selectedNode: string | null;
-    onEditModeLockChange: (locked: boolean) => void;
     onSelectNode: (nodeId: string | null) => void;
     onTreeChange: (tree: SyntaxNode) => void;
 };
@@ -41,7 +40,6 @@ export function SyntaxTree({
     functionSymbols,
     predicateSymbols,
     selectedNode,
-    onEditModeLockChange,
     onSelectNode,
     onTreeChange,
 }: SyntaxTreeProps) {
@@ -192,9 +190,7 @@ export function SyntaxTree({
                         if (editorRef.current?.contains(event.relatedTarget as Node | null)) return;
                         if (skipRenameCommitRef.current) skipRenameCommitRef.current = false;
                         else commitRename();
-                        onEditModeLockChange(false);
                     }}
-                    onFocusCapture={() => onEditModeLockChange(true)}
                     ref={editorRef}
                 >
                     <span>Editando nodo</span>

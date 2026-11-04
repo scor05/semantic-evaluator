@@ -14,7 +14,7 @@ export function InteractionHint({ editMode }: InteractionHintProps) {
                 <strong>{editMode ? "Modo edición activo" : "Explora el árbol"}</strong>
                 <span>
                     {editMode
-                        ? "Haz clic en un control para modificar la estructura."
+                        ? "Selecciona otro nodo o haz clic fuera del árbol para salir."
                         : "Arrastra para orbitar · rueda para acercar · Ctrl para editar"}
                 </span>
             </div>

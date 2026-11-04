@@ -54,7 +54,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                         <div className="key-group"><kbd>Ctrl</kbd></div>
                         <div>
                             <strong>Editar el árbol</strong>
-                            <span>Mantenlo presionado para detener la cámara y usar los controles de los nodos.</span>
+                            <span>Mantenlo presionado para seleccionar un nodo. La edición queda activa hasta hacer clic en un espacio vacío.</span>
                         </div>
                     </div>
                 </div>

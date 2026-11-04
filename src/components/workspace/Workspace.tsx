@@ -22,7 +22,6 @@ type WorkspaceProps = {
     result: DemonstrationResult;
     onOpenHelp: () => void;
     onOpenEvidence: () => void;
-    onEditModeLockChange: (locked: boolean) => void;
     onSelectNode: (nodeId: string | null) => void;
     onTreeChange: (tree: SyntaxNode) => void;
 };
@@ -42,7 +41,6 @@ export function Workspace({
     result,
     onOpenHelp,
     onOpenEvidence,
-    onEditModeLockChange,
     onSelectNode,
     onTreeChange,
 }: WorkspaceProps) {
@@ -59,7 +57,6 @@ export function Workspace({
             <SyntaxTree
                 editMode={editMode}
                 functionSymbols={functionSymbols}
-                onEditModeLockChange={onEditModeLockChange}
                 onSelectNode={onSelectNode}
                 onTreeChange={onTreeChange}
                 predicateSymbols={predicateSymbols}
