@@ -75,9 +75,26 @@
     margin-left: 18px;
   }
 
-  .evidence-button {
+  .evidence-button-slot {
     right: 18px !important;
-    bottom: 28px;
+    bottom: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translateY(50%);
+  }
+
+  .evidence-button {
+    width: 44px;
+    height: 44px;
+    gap: 0;
+    padding: 4px;
+  }
+
+  .evidence-button:hover,
+  .evidence-button:focus-visible {
+    width: 44px;
+    gap: 0;
+    padding: 4px;
   }
 
   .evidence-button > span:nth-child(2),

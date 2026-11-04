@@ -87,11 +87,31 @@
   border-color: rgba(121, 227, 188, 0.55);
 }
 
-.tree-node-editor > div {
+.node-editor-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   margin-top: 8px;
+}
+
+.node-editor-symbols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.tree-node-editor .node-editor-symbols button {
+  min-height: 30px;
+  padding: 0 4px;
+  font-family: var(--font-tertiary-title);
+  font-size: var(--size-tertiary-title);
+}
+
+.tree-node-editor .node-editor-symbols button.is-selected {
+  border-color: rgba(121, 227, 188, 0.42);
+  color: var(--mint);
+  background: rgba(121, 227, 188, 0.08);
 }
 
 .tree-node-editor button {

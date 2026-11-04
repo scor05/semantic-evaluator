@@ -8,14 +8,20 @@ import { ParameterDrawer } from "./components/parameters/ParameterDrawer";
 import { Toast } from "./components/ui/Toast";
 import { Workspace } from "./components/workspace/Workspace";
 import {
+    createDefaultFunctionOutputs,
+    getInterpretationErrors,
+} from "./domain/interpretation";
+import {
     classifySyntaxSymbol,
     clearSyntaxNodeSubstitution,
     findSyntaxNode,
     getEnvironmentNodeIds,
     getFreeVariables,
+    getSyntaxArityErrors,
     getSubstitutionValues,
     getSubstitutedVariables,
     getSyntaxNodes,
+    inferSyntaxNodeKind,
     isVariableLabel,
     parseExpression,
     serializeSyntaxTree,
@@ -42,7 +48,7 @@ function App() {
         { id: 1, name: "P", arity: 2 },
         { id: 2, name: "Q", arity: 1 },
     ]);
-    const [formula, setFormula] = useState("∀x(P(x) → ∃y Q(x,y))");
+    const [formula, setFormula] = useState("∀x(P(x,y) → ∃y Q(y))");
     const [syntaxTree, setSyntaxTree] = useState<SyntaxNode | null>(() =>
         parseExpression(formula, {
             functions: functions.map(({ name }) => name),
@@ -51,7 +57,9 @@ function App() {
         })
     );
     const [renderedFormula, setRenderedFormula] = useState(formula);
-    const [functionOutputs, setFunctionOutputs] = useState<Record<string, string>>({});
+    const [functionOutputs, setFunctionOutputs] = useState<Record<string, string>>(() =>
+        createDefaultFunctionOutputs(domain, functions)
+    );
     const [predicateTuples, setPredicateTuples] = useState<Record<string, string[]>>({
         P: ["(1, 0)", "(2, 0)"],
         Q: ["1", "0"],
@@ -100,6 +108,10 @@ function App() {
         ),
         [domain, editedNodeSymbols, functionSymbols, predicateSymbols],
     );
+    const arityErrors = useMemo(
+        () => syntaxTree ? getSyntaxArityErrors(syntaxTree, { functions, predicates }) : [],
+        [functions, predicates, syntaxTree],
+    );
 
     const setEditModeLock = (locked: boolean) => {
         editModeLockedRef.current = locked;
@@ -120,6 +132,15 @@ function App() {
             })),
         [domain, functions],
     );
+    const interpretationErrors = useMemo(() => {
+        return getInterpretationErrors({
+            domain,
+            functions,
+            predicates,
+            functionOutputs,
+            predicateTuples,
+        });
+    }, [domain, functionOutputs, functions, predicateTuples, predicates]);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -267,7 +288,11 @@ function App() {
                 reconciledTree = clearSyntaxNodeSubstitution(
                     reconciledTree,
                     nodeId,
-                    nextNode.kind,
+                    role === "predicate"
+                        ? "predicate"
+                        : role === "function"
+                            ? "function"
+                            : inferSyntaxNodeKind(nextNode.label),
                 );
             } else if (
                 !isVariableLabel(nextNode.label)
@@ -350,8 +375,10 @@ function App() {
     return (
         <main className={`app-shell ${drawerOpen ? "drawer-is-open" : ""}`}>
             <Workspace
+                arityErrors={arityErrors}
                 editMode={editMode}
                 invalidDomainSymbols={invalidDomainSymbols}
+                interpretationErrors={interpretationErrors}
                 environmentMissing={environmentMissing}
                 formula={renderedFormula}
                 freeVariables={freeVariables}

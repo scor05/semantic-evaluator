@@ -14,3 +14,9 @@ export type FunctionInterpretation = {
 };
 
 export type DemonstrationResult = boolean | null;
+
+export type InterpretationError = {
+    symbol: string;
+    kind: "function" | "predicate";
+    missingCount: number;
+};

@@ -214,7 +214,20 @@ export function SyntaxTree({
                         }}
                         value={renameDraft}
                     />
-                    <div>
+                    <div className="node-editor-symbols" aria-label="Símbolos lógicos">
+                        {[...quantifierSymbols, ...connectiveSymbols].map((symbol) => (
+                            <button
+                                aria-label={`Usar ${symbol}`}
+                                className={renameDraft === symbol ? "is-selected" : ""}
+                                key={symbol}
+                                onClick={() => setRenameDraft(symbol)}
+                                type="button"
+                            >
+                                {symbol}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="node-editor-actions">
                         <button onClick={() => editTree("wrap")} type="button">
                             <WrapText size={14} /> Padre
                         </button>

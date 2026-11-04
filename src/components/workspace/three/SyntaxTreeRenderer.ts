@@ -2,7 +2,11 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import mathFontUrl from "../../../assets/NotoSansMath-Regular.ttf?url";
-import type { SyntaxNode, SyntaxNodeKind } from "../../../domain/syntaxTree";
+import {
+    getFreeVariableNodeIds,
+    type SyntaxNode,
+    type SyntaxNodeKind,
+} from "../../../domain/syntaxTree";
 
 export type TreeEditAction = "wrap" | "add-child" | "remove";
 
@@ -138,8 +142,9 @@ export class SyntaxTreeRenderer {
         this.clearDynamicScene();
 
         const positions = this.layoutTree(this.tree);
+        const freeVariableNodeIds = new Set(getFreeVariableNodeIds(this.tree));
         for (const { node, position } of positions.values()) {
-            this.addNode(node, position);
+            this.addNode(node, position, freeVariableNodeIds.has(node.id));
             for (const child of node.children) {
                 const childEntry = positions.get(child.id);
                 if (childEntry) this.addEdge(node, position, childEntry.node, childEntry.position);
@@ -183,12 +188,12 @@ export class SyntaxTreeRenderer {
         return positions;
     }
 
-    private addNode(node: SyntaxNode, position: THREE.Vector3): void {
-        const selected = node.id === this.selectedNodeId;
+    private addNode(node: SyntaxNode, position: THREE.Vector3, isFreeVariable: boolean): void {
+        const selected = this.editMode && node.id === this.selectedNodeId;
         const text = this.createText(node.label, 0.72, nodeColors[node.kind]);
         text.position.copy(position);
-        text.outlineWidth = selected ? "9%" : "3%";
-        text.outlineColor = selected ? 0x2a9c78 : 0x07100d;
+        text.outlineWidth = selected ? "9%" : isFreeVariable ? "7%" : "3%";
+        text.outlineColor = selected ? 0x2a9c78 : isFreeVariable ? 0xf1a94b : 0x07100d;
         text.renderOrder = 10;
         this.dynamicRoot.add(text);
         this.labels.push(text);

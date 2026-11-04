@@ -27,6 +27,19 @@ export type SyntaxSymbolRole =
     | "function"
     | "logical";
 
+export type SyntaxArityDefinition = {
+    name: string;
+    arity: number;
+};
+
+export type SyntaxArityError = {
+    nodeId: string;
+    symbol: string;
+    kind: "predicate" | "function";
+    expected: number;
+    actual: number;
+};
+
 export function classifySyntaxSymbol(
     symbol: string,
     language: SyntaxLanguageSymbols = {},
@@ -224,6 +237,36 @@ export function getSyntaxNodes(root: SyntaxNode): SyntaxNode[] {
     return [root, ...root.children.flatMap(getSyntaxNodes)];
 }
 
+export function getSyntaxArityErrors(
+    root: SyntaxNode,
+    language: {
+        functions?: Iterable<SyntaxArityDefinition>;
+        predicates?: Iterable<SyntaxArityDefinition>;
+    },
+): SyntaxArityError[] {
+    const functions = new Map(
+        [...language.functions ?? []].map(({ name, arity }) => [name.trim(), arity]),
+    );
+    const predicates = new Map(
+        [...language.predicates ?? []].map(({ name, arity }) => [name.trim(), arity]),
+    );
+
+    return getSyntaxNodes(root).flatMap((node) => {
+        if (node.kind !== "function" && node.kind !== "predicate") return [];
+        const expected = node.kind === "function"
+            ? functions.get(node.label)
+            : predicates.get(node.label);
+        if (expected === undefined || expected === node.children.length) return [];
+        return [{
+            nodeId: node.id,
+            symbol: node.label,
+            kind: node.kind,
+            expected,
+            actual: node.children.length,
+        }];
+    });
+}
+
 export function renameSyntaxNode(
     root: SyntaxNode,
     nodeId: string,
@@ -337,7 +380,15 @@ export function inferSyntaxNodeKind(label: string): SyntaxNodeKind {
 }
 
 export function getFreeVariables(root: SyntaxNode): string[] {
-    const freeVariables = new Set<string>();
+    return [...new Set(getFreeVariableNodes(root).map(({ label }) => label))];
+}
+
+export function getFreeVariableNodeIds(root: SyntaxNode): string[] {
+    return getFreeVariableNodes(root).map(({ id }) => id);
+}
+
+function getFreeVariableNodes(root: SyntaxNode): SyntaxNode[] {
+    const freeNodes: SyntaxNode[] = [];
 
     const visit = (node: SyntaxNode, boundVariables: ReadonlySet<string>) => {
         if (
@@ -345,7 +396,7 @@ export function getFreeVariables(root: SyntaxNode): string[] {
             && isVariableLabel(node.label)
             && !boundVariables.has(node.label)
         ) {
-            freeVariables.add(node.label);
+            freeNodes.push(node);
         }
 
         const quantifiedVariable = getQuantifiedVariable(node);
@@ -360,7 +411,7 @@ export function getFreeVariables(root: SyntaxNode): string[] {
     };
 
     visit(root, new Set());
-    return [...freeVariables];
+    return freeNodes;
 }
 
 export function getEnvironmentNodeIds(root: SyntaxNode): string[] {

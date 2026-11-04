@@ -1,23 +1,32 @@
 import { CircleHelp } from "lucide-react";
+import type { SyntaxArityError } from "../../domain/syntaxTree";
+import type { InterpretationError } from "../../types/logic";
 import "../../styles/shared-controls.css";
 import "./workspace-shell.css";
 
 type WorkspaceHeaderProps = {
+    arityErrors: SyntaxArityError[];
     formula: string;
     freeVariables: string[];
     invalidDomainSymbols: string[];
+    interpretationErrors: InterpretationError[];
     onOpenHelp: () => void;
 };
 
 export function WorkspaceHeader({
+    arityErrors,
     formula,
     freeVariables,
     invalidDomainSymbols,
+    interpretationErrors,
     onOpenHelp,
 }: WorkspaceHeaderProps) {
     const isOpen = freeVariables.length > 0;
     const hasInvalidSymbol = invalidDomainSymbols.length > 0;
-    const status = hasInvalidSymbol ? "invalid" : isOpen ? "open" : "closed";
+    const firstArityError = arityErrors[0];
+    const hasInterpretationError = interpretationErrors.length > 0;
+    const hasFormulaError = hasInvalidSymbol || Boolean(firstArityError) || hasInterpretationError;
+    const status = hasFormulaError ? "invalid" : isOpen ? "open" : "closed";
 
     return (
         <header className="workspace-header">
@@ -29,6 +38,10 @@ export function WorkspaceHeader({
                         <span className="status-dot" />
                         {hasInvalidSymbol
                             ? `Símbolo no reconocido · ${invalidDomainSymbols.join(", ")}`
+                            : firstArityError
+                                ? `Aridad inválida · ${firstArityError.symbol} tiene ${firstArityError.actual} de ${firstArityError.expected} argumentos`
+                            : hasInterpretationError
+                                ? `Interpretación faltante · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
                             : isOpen
                             ? `Fórmula abierta · ${freeVariables.join(", ")} ${freeVariables.length === 1 ? "libre" : "libres"}`
                             : "Fórmula cerrada"}
