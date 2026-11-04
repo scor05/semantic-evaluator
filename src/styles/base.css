@@ -16,6 +16,7 @@
   --bg: #080b0f;
   --panel: #10151b;
   --panel-soft: #151b22;
+  --sidebar-bg: #0e1217;
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.15);
   --muted: #8f9b9a;
@@ -77,4 +78,3 @@ select:focus-visible {
   outline: 2px solid var(--mint);
   outline-offset: 2px;
 }
-

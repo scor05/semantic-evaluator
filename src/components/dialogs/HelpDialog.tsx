@@ -7,10 +7,10 @@ type HelpDialogProps = {
 };
 
 const controls = [
-    { keys: ["Q", "E"], title: "Acercar y alejar", description: "Ajusta la escala de la vista." },
-    { keys: ["A", "D"], title: "Rotación horizontal", description: "Gira la cámara sobre el eje Y." },
-    { keys: ["W", "S"], title: "Rotación vertical", description: "Gira la cámara sobre el eje X." },
-    { keys: ["Z", "X"], title: "Inclinación", description: "Gira la cámara sobre el eje Z." },
+    { keys: ["Q", "E"], title: "Acercar y alejar", description: "Mantén presionado para ajustar la distancia." },
+    { keys: ["A", "D"], title: "Rotación horizontal", description: "Mantén presionado para orbitar sobre el eje Y." },
+    { keys: ["W", "S"], title: "Rotación vertical", description: "Mantén presionado para orbitar sobre el eje X." },
+    { keys: ["Z", "X"], title: "Inclinación", description: "Mantén presionado para girar sobre el eje de visión." },
 ];
 
 export function HelpDialog({ onClose }: HelpDialogProps) {
@@ -36,7 +36,7 @@ export function HelpDialog({ onClose }: HelpDialogProps) {
                         </div>
                         <div>
                             <strong>Desplazar cámara verticalmente</strong>
-                            <span>Mueve la cámara y su objetivo hacia arriba o abajo. Usa Shift para avanzar más rápido.</span>
+                            <span>Mueve la cámara y su objetivo hacia arriba o abajo. Shift acelera todos los controles.</span>
                         </div>
                     </div>
                     {controls.map((control) => (

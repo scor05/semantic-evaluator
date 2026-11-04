@@ -25,6 +25,19 @@ const nodeColors: Record<SyntaxNodeKind, number> = {
     term: 0xf0f7f5,
 };
 
+const cameraControlCodes = new Set([
+    "ArrowUp",
+    "ArrowDown",
+    "KeyW",
+    "KeyA",
+    "KeyS",
+    "KeyD",
+    "KeyQ",
+    "KeyE",
+    "KeyZ",
+    "KeyX",
+]);
+
 export class SyntaxTreeRenderer {
     private readonly scene = new THREE.Scene();
     private readonly camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
@@ -45,6 +58,7 @@ export class SyntaxTreeRenderer {
     private tree: SyntaxNode | null = null;
     private selectedNodeId: string | null = null;
     private editMode = false;
+    private mouseNavigationActive = false;
     private disposed = false;
     private hasFramedTree = false;
 
@@ -66,6 +80,8 @@ export class SyntaxTreeRenderer {
         this.controls.minDistance = 5;
         this.controls.maxDistance = 30;
         this.controls.target.set(0, 0, 0);
+        this.controls.addEventListener("start", this.handleControlsStart);
+        this.controls.addEventListener("end", this.handleControlsEnd);
 
         this.scene.add(this.dynamicRoot);
         this.renderer.domElement.addEventListener("pointerdown", this.handlePointerDown);
@@ -94,7 +110,8 @@ export class SyntaxTreeRenderer {
         const changed = this.editMode !== editMode || this.selectedNodeId !== selectedNodeId;
         this.editMode = editMode;
         this.selectedNodeId = selectedNodeId;
-        this.controls.enabled = !editMode;
+        this.controls.enabled = !editMode && !this.hasActiveKeyboardMovement();
+        if (editMode) this.clearMovementKeys();
         this.renderer.domElement.classList.toggle("is-editing", editMode);
         if (changed && this.tree) this.rebuildScene();
     }
@@ -108,6 +125,8 @@ export class SyntaxTreeRenderer {
         window.removeEventListener("keydown", this.handleKeyDown);
         window.removeEventListener("keyup", this.handleKeyUp);
         window.removeEventListener("blur", this.clearMovementKeys);
+        this.controls.removeEventListener("start", this.handleControlsStart);
+        this.controls.removeEventListener("end", this.handleControlsEnd);
         this.controls.dispose();
         this.clearDynamicScene();
         this.renderer.dispose();
@@ -336,11 +355,18 @@ export class SyntaxTreeRenderer {
     };
 
     private handleKeyDown = (event: KeyboardEvent): void => {
-        if (event.key === "Shift") {
-            this.movementKeys.add(event.key);
+        if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+            this.movementKeys.add(event.code);
             return;
         }
-        if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+        if (
+            !cameraControlCodes.has(event.code)
+            || event.ctrlKey
+            || event.metaKey
+            || event.altKey
+            || this.editMode
+            || this.mouseNavigationActive
+        ) return;
         const activeElement = document.activeElement;
         if (
             activeElement instanceof HTMLInputElement
@@ -350,26 +376,89 @@ export class SyntaxTreeRenderer {
         ) return;
 
         event.preventDefault();
-        this.movementKeys.add(event.key);
+        this.movementKeys.add(event.code);
+        this.controls.enabled = false;
     };
 
     private handleKeyUp = (event: KeyboardEvent): void => {
-        this.movementKeys.delete(event.key);
+        this.movementKeys.delete(event.code);
+        if (!this.hasActiveKeyboardMovement() && !this.editMode && !this.mouseNavigationActive) {
+            this.controls.enabled = true;
+        }
     };
 
     private clearMovementKeys = (): void => {
         this.movementKeys.clear();
+        if (!this.editMode && !this.mouseNavigationActive) this.controls.enabled = true;
+    };
+
+    private handleControlsStart = (): void => {
+        this.mouseNavigationActive = true;
+        this.movementKeys.clear();
+    };
+
+    private handleControlsEnd = (): void => {
+        this.mouseNavigationActive = false;
+        if (!this.editMode && !this.hasActiveKeyboardMovement()) this.controls.enabled = true;
+    };
+
+    private hasActiveKeyboardMovement(): boolean {
+        return [...cameraControlCodes].some((code) => this.movementKeys.has(code));
     };
 
     private updateContinuousMovement(deltaSeconds: number): void {
+        if (this.editMode) return;
+
         const verticalDirection = Number(this.movementKeys.has("ArrowUp"))
             - Number(this.movementKeys.has("ArrowDown"));
-        if (verticalDirection === 0) return;
+        const horizontalOrbit = Number(this.movementKeys.has("KeyD"))
+            - Number(this.movementKeys.has("KeyA"));
+        const verticalOrbit = Number(this.movementKeys.has("KeyS"))
+            - Number(this.movementKeys.has("KeyW"));
+        const zoomDirection = Number(this.movementKeys.has("KeyE"))
+            - Number(this.movementKeys.has("KeyQ"));
+        const rollDirection = Number(this.movementKeys.has("KeyX"))
+            - Number(this.movementKeys.has("KeyZ"));
+        if (
+            verticalDirection === 0
+            && horizontalOrbit === 0
+            && verticalOrbit === 0
+            && zoomDirection === 0
+            && rollDirection === 0
+        ) return;
 
-        const speed = this.movementKeys.has("Shift") ? 6.4 : 3.2;
-        const movement = verticalDirection * speed * deltaSeconds;
-        this.camera.position.y += movement;
-        this.controls.target.y += movement;
+        const accelerated = this.movementKeys.has("ShiftLeft")
+            || this.movementKeys.has("ShiftRight");
+        const speedMultiplier = accelerated ? 2 : 1;
+
+        if (verticalDirection !== 0) {
+            const movement = verticalDirection * 3.2 * speedMultiplier * deltaSeconds;
+            this.camera.position.y += movement;
+            this.controls.target.y += movement;
+        }
+
+        const offset = this.camera.position.clone().sub(this.controls.target);
+        const spherical = new THREE.Spherical().setFromVector3(offset);
+        if (horizontalOrbit !== 0 || verticalOrbit !== 0 || zoomDirection !== 0) {
+            const orbitSpeed = 1.15 * speedMultiplier * deltaSeconds;
+            spherical.theta += horizontalOrbit * orbitSpeed;
+            spherical.phi += verticalOrbit * orbitSpeed;
+            spherical.phi = THREE.MathUtils.clamp(spherical.phi, 0.08, Math.PI - 0.08);
+            spherical.radius = THREE.MathUtils.clamp(
+                spherical.radius * Math.exp(zoomDirection * 1.35 * speedMultiplier * deltaSeconds),
+                this.controls.minDistance,
+                this.controls.maxDistance,
+            );
+            this.camera.position.copy(this.controls.target).add(offset.setFromSpherical(spherical));
+        }
+
+        if (rollDirection !== 0) {
+            const viewDirection = this.controls.target.clone().sub(this.camera.position).normalize();
+            this.camera.up.applyAxisAngle(
+                viewDirection,
+                rollDirection * 1.15 * speedMultiplier * deltaSeconds,
+            ).normalize();
+        }
     }
 
     private resize = (): void => {

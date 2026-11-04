@@ -15,6 +15,11 @@
     --drawer-width: min(92vw, 430px);
   }
 
+  .workspace {
+    --workspace-header-height: 88px;
+    --workspace-bottom-bar-height: 100px;
+  }
+
   .drawer-is-open .workspace {
     padding-right: 0;
   }
@@ -37,8 +42,8 @@
   }
 
   .workspace-header {
-    height: 72px;
-    padding: 0 18px;
+    height: var(--workspace-header-height);
+    padding: 8px 18px;
   }
 
   .brand-copy span {
@@ -57,24 +62,22 @@
     transform: translateY(-50%);
   }
 
-  .scene-title .eyebrow,
-  .scene-title .formula-status {
+  .scene-title .eyebrow {
     display: none;
   }
 
   .tree-scene {
-    top: 88px;
-    bottom: 145px;
+    top: calc(var(--workspace-header-height) + 16px);
+    bottom: calc(var(--workspace-bottom-bar-height) + 18px);
   }
 
   .interaction-hint {
-    bottom: 26px;
-    left: 18px;
+    margin-left: 18px;
   }
 
   .evidence-button {
     right: 18px !important;
-    bottom: 26px;
+    bottom: 28px;
   }
 
   .evidence-button > span:nth-child(2),

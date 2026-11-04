@@ -164,11 +164,13 @@
   box-shadow: 0 0 8px var(--mint);
 }
 
-.formula-status.is-open {
+.formula-status.is-open,
+.formula-status.is-invalid {
   color: #d9a85f;
 }
 
-.formula-status.is-open .status-dot {
+.formula-status.is-open .status-dot,
+.formula-status.is-invalid .status-dot {
   background: #f1a94b;
   box-shadow: 0 0 8px rgba(241, 169, 75, 0.85);
 }

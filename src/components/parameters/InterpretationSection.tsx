@@ -149,25 +149,31 @@ export function InterpretationSection({
                 </div>
                 {freeVariables.length > 0 ? (
                     <div className="environment-card">
-                        {freeVariables.map((variable) => (
-                            <label key={variable}>
-                                <code>{variable} ↦</code>
-                                <select
-                                    aria-label={`Valor de la variable libre ${variable}`}
-                                    value={environmentValues[variable] ?? ""}
-                                    onChange={(event) =>
-                                        onEnvironmentChange(variable, event.target.value)
-                                    }
-                                >
-                                    <option value="">—</option>
-                                    {domain.map((value) => (
-                                        <option key={value} value={value}>
-                                            {value}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                        ))}
+                        {freeVariables.map((variable) => {
+                            const selectedValue = environmentValues[variable] ?? "";
+                            return (
+                                <label key={variable}>
+                                    <code>{variable} ↦</code>
+                                    <select
+                                        aria-label={`Valor de la variable libre ${variable}`}
+                                        value={selectedValue}
+                                        onChange={(event) =>
+                                            onEnvironmentChange(variable, event.target.value)
+                                        }
+                                    >
+                                        <option value="">—</option>
+                                        {selectedValue && !domain.includes(selectedValue) && (
+                                            <option value={selectedValue}>{selectedValue}</option>
+                                        )}
+                                        {domain.map((value) => (
+                                            <option key={value} value={value}>
+                                                {value}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="inline-empty environment-empty">No hay variables libres</div>

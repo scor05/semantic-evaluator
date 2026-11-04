@@ -3,6 +3,7 @@ export type SyntaxNodeKind =
     | "connective"
     | "predicate"
     | "function"
+    | "value"
     | "term";
 
 export type SyntaxNode = {
@@ -10,12 +11,34 @@ export type SyntaxNode = {
     label: string;
     kind: SyntaxNodeKind;
     children: SyntaxNode[];
+    substitutedFor?: string;
 };
 
 export type SyntaxLanguageSymbols = {
     functions?: Iterable<string>;
     predicates?: Iterable<string>;
+    values?: Iterable<string>;
 };
+
+export type SyntaxSymbolRole =
+    | "variable"
+    | "value"
+    | "predicate"
+    | "function"
+    | "logical";
+
+export function classifySyntaxSymbol(
+    symbol: string,
+    language: SyntaxLanguageSymbols = {},
+): SyntaxSymbolRole | null {
+    if (isVariableLabel(symbol)) return "variable";
+    if (new Set(language.values ?? []).has(symbol)) return "value";
+    if (new Set(language.predicates ?? []).has(symbol)) return "predicate";
+    if (new Set(language.functions ?? []).has(symbol)) return "function";
+    if (["¬", "∧", "∨", "→", "↔", "=", "φ"].includes(symbol)) return "logical";
+    if (/^[∀∃][w-z]$/u.test(symbol)) return "logical";
+    return null;
+}
 
 let editNodeSequence = 0;
 
@@ -42,10 +65,12 @@ class LooseExpressionParser {
     private nodeSequence = 0;
     private readonly functionSymbols: Set<string>;
     private readonly predicateSymbols: Set<string>;
+    private readonly values: Set<string>;
 
     constructor(private readonly tokens: string[], language: SyntaxLanguageSymbols) {
         this.functionSymbols = new Set(language.functions ?? []);
         this.predicateSymbols = new Set(language.predicates ?? []);
+        this.values = new Set(language.values ?? []);
     }
 
     parse(): SyntaxNode {
@@ -167,9 +192,10 @@ class LooseExpressionParser {
         return /^[A-Za-z_][A-Za-z0-9_]*$/u.test(this.peek());
     }
 
-    private configuredKind(label: string): "function" | "predicate" | null {
+    private configuredKind(label: string): "function" | "predicate" | "value" | null {
         if (this.predicateSymbols.has(label)) return "predicate";
         if (this.functionSymbols.has(label)) return "function";
+        if (this.values.has(label)) return "value";
         return null;
     }
 
@@ -194,6 +220,10 @@ export function findSyntaxNode(root: SyntaxNode, nodeId: string): SyntaxNode | n
     return null;
 }
 
+export function getSyntaxNodes(root: SyntaxNode): SyntaxNode[] {
+    return [root, ...root.children.flatMap(getSyntaxNodes)];
+}
+
 export function renameSyntaxNode(
     root: SyntaxNode,
     nodeId: string,
@@ -202,11 +232,65 @@ export function renameSyntaxNode(
 ): SyntaxNode {
     const normalizedLabel = label.trim();
     if (!normalizedLabel) return root;
-    if (root.id === nodeId) return { ...root, label: normalizedLabel, kind: kind ?? root.kind };
+    if (root.id === nodeId) {
+        if (root.substitutedFor && isVariableLabel(normalizedLabel)) {
+            return {
+                ...root,
+                label: normalizedLabel,
+                kind: "term",
+                substitutedFor: undefined,
+            };
+        }
+        return {
+            ...root,
+            label: normalizedLabel,
+            kind: root.substitutedFor ? "value" : kind ?? root.kind,
+        };
+    }
     return {
         ...root,
         children: root.children.map((child) =>
             renameSyntaxNode(child, nodeId, normalizedLabel, kind)
+        ),
+    };
+}
+
+export function trackSyntaxNodeSubstitution(
+    root: SyntaxNode,
+    nodeId: string,
+    variable: string,
+): SyntaxNode {
+    if (root.id === nodeId) {
+        return {
+            ...root,
+            kind: "value",
+            substitutedFor: variable,
+        };
+    }
+    return {
+        ...root,
+        children: root.children.map((child) =>
+            trackSyntaxNodeSubstitution(child, nodeId, variable)
+        ),
+    };
+}
+
+export function clearSyntaxNodeSubstitution(
+    root: SyntaxNode,
+    nodeId: string,
+    kind: SyntaxNodeKind,
+): SyntaxNode {
+    if (root.id === nodeId) {
+        return {
+            ...root,
+            kind,
+            substitutedFor: undefined,
+        };
+    }
+    return {
+        ...root,
+        children: root.children.map((child) =>
+            clearSyntaxNodeSubstitution(child, nodeId, kind)
         ),
     };
 }
@@ -250,6 +334,135 @@ export function inferSyntaxNodeKind(label: string): SyntaxNodeKind {
     if (/^[A-Z]/u.test(label)) return "predicate";
     if (/^[a-z][A-Za-z0-9_]*$/u.test(label) && label.length > 1) return "function";
     return "term";
+}
+
+export function getFreeVariables(root: SyntaxNode): string[] {
+    const freeVariables = new Set<string>();
+
+    const visit = (node: SyntaxNode, boundVariables: ReadonlySet<string>) => {
+        if (
+            node.kind === "term"
+            && isVariableLabel(node.label)
+            && !boundVariables.has(node.label)
+        ) {
+            freeVariables.add(node.label);
+        }
+
+        const quantifiedVariable = getQuantifiedVariable(node);
+        if (!quantifiedVariable) {
+            for (const child of node.children) visit(child, boundVariables);
+            return;
+        }
+
+        const nextBoundVariables = new Set(boundVariables);
+        nextBoundVariables.add(quantifiedVariable);
+        for (const child of node.children) visit(child, nextBoundVariables);
+    };
+
+    visit(root, new Set());
+    return [...freeVariables];
+}
+
+export function getEnvironmentNodeIds(root: SyntaxNode): string[] {
+    const nodeIds = new Set<string>();
+
+    const visit = (node: SyntaxNode, boundVariables: ReadonlySet<string>) => {
+        if (
+            node.substitutedFor
+            || (
+                node.kind === "term"
+                && isVariableLabel(node.label)
+                && !boundVariables.has(node.label)
+            )
+        ) {
+            nodeIds.add(node.id);
+        }
+
+        const quantifiedVariable = getQuantifiedVariable(node);
+        const nextBoundVariables = quantifiedVariable
+            ? new Set([...boundVariables, quantifiedVariable])
+            : boundVariables;
+        for (const child of node.children) visit(child, nextBoundVariables);
+    };
+
+    visit(root, new Set());
+    return [...nodeIds];
+}
+
+export function substituteFreeVariable(
+    root: SyntaxNode,
+    variable: string,
+    replacement: string,
+): SyntaxNode {
+    const normalizedVariable = variable.trim();
+    const normalizedReplacement = replacement.trim();
+    if (!normalizedVariable) return root;
+
+    const substitute = (node: SyntaxNode, boundVariables: ReadonlySet<string>): SyntaxNode => {
+        if (node.substitutedFor === normalizedVariable) {
+            return normalizedReplacement
+                ? { ...node, label: normalizedReplacement, kind: "value" }
+                : { ...node, label: normalizedVariable, kind: "term", substitutedFor: undefined };
+        }
+
+        if (
+            node.kind === "term"
+            && Boolean(normalizedReplacement)
+            && node.label === normalizedVariable
+            && !boundVariables.has(normalizedVariable)
+        ) {
+            return {
+                ...node,
+                label: normalizedReplacement,
+                kind: "value",
+                substitutedFor: normalizedVariable,
+            };
+        }
+
+        const quantifiedVariable = getQuantifiedVariable(node);
+        const nextBoundVariables = quantifiedVariable
+            ? new Set([...boundVariables, quantifiedVariable])
+            : boundVariables;
+        return {
+            ...node,
+            children: node.children.map((child) => substitute(child, nextBoundVariables)),
+        };
+    };
+
+    return substitute(root, new Set());
+}
+
+export function getSubstitutedVariables(root: SyntaxNode): string[] {
+    const variables = new Set<string>();
+    const visit = (node: SyntaxNode) => {
+        if (node.substitutedFor) variables.add(node.substitutedFor);
+        for (const child of node.children) visit(child);
+    };
+    visit(root);
+    return [...variables];
+}
+
+export function getSubstitutionValues(root: SyntaxNode): Record<string, string[]> {
+    const values: Record<string, string[]> = {};
+    const visit = (node: SyntaxNode) => {
+        if (node.substitutedFor) {
+            const variableValues = values[node.substitutedFor] ?? [];
+            if (!variableValues.includes(node.label)) variableValues.push(node.label);
+            values[node.substitutedFor] = variableValues;
+        }
+        for (const child of node.children) visit(child);
+    };
+    visit(root);
+    return values;
+}
+
+function getQuantifiedVariable(node: SyntaxNode): string | null {
+    if (node.kind !== "quantifier") return null;
+    return node.label.match(/^[∀∃]\s*([A-Za-z_][A-Za-z0-9_]*)$/u)?.[1] ?? null;
+}
+
+export function isVariableLabel(label: string): boolean {
+    return /^[w-z]$/u.test(label);
 }
 
 export function removeSyntaxNode(root: SyntaxNode, nodeId: string): SyntaxNode {

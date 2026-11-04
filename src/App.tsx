@@ -8,8 +8,19 @@ import { ParameterDrawer } from "./components/parameters/ParameterDrawer";
 import { Toast } from "./components/ui/Toast";
 import { Workspace } from "./components/workspace/Workspace";
 import {
+    classifySyntaxSymbol,
+    clearSyntaxNodeSubstitution,
+    findSyntaxNode,
+    getEnvironmentNodeIds,
+    getFreeVariables,
+    getSubstitutionValues,
+    getSubstitutedVariables,
+    getSyntaxNodes,
+    isVariableLabel,
     parseExpression,
     serializeSyntaxTree,
+    substituteFreeVariable,
+    trackSyntaxNodeSubstitution,
     type SyntaxNode,
 } from "./domain/syntaxTree";
 import type {
@@ -36,6 +47,7 @@ function App() {
         parseExpression(formula, {
             functions: functions.map(({ name }) => name),
             predicates: predicates.map(({ name }) => name),
+            values: domain,
         })
     );
     const [renderedFormula, setRenderedFormula] = useState(formula);
@@ -44,8 +56,9 @@ function App() {
         P: ["(1, 0)", "(2, 0)"],
         Q: ["1", "0"],
     });
-    const [environmentValue, setEnvironmentValue] = useState("1");
-    const [hasFreeVariables, setHasFreeVariables] = useState(false);
+    const [environmentValues, setEnvironmentValues] = useState<Record<string, string>>({});
+    const [editedNodeSymbols, setEditedNodeSymbols] =
+        useState<Record<string, string>>({});
     const [controlEditMode, setControlEditMode] = useState(false);
     const [editModeLocked, setEditModeLocked] = useState(false);
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -58,6 +71,35 @@ function App() {
     const editModeLockedRef = useRef(false);
     const nextId = useRef(10);
     const editMode = controlEditMode || editModeLocked;
+    const functionSymbols = useMemo(
+        () => functions.map(({ name }) => name.trim()).filter(Boolean),
+        [functions],
+    );
+    const predicateSymbols = useMemo(
+        () => predicates.map(({ name }) => name.trim()).filter(Boolean),
+        [predicates],
+    );
+    const freeVariables = useMemo(
+        () => syntaxTree ? getFreeVariables(syntaxTree) : [],
+        [syntaxTree],
+    );
+    const environmentVariables = useMemo(() => {
+        if (!syntaxTree) return [];
+        return [...new Set([...freeVariables, ...getSubstitutedVariables(syntaxTree)])];
+    }, [freeVariables, syntaxTree]);
+    const environmentMissing = freeVariables.some(
+        (variable) => !environmentValues[variable]?.trim(),
+    );
+    const invalidDomainSymbols = useMemo(
+        () => [...new Set(Object.values(editedNodeSymbols))].filter(
+            (symbol) => !classifySyntaxSymbol(symbol, {
+                values: domain,
+                predicates: predicateSymbols,
+                functions: functionSymbols,
+            }),
+        ),
+        [domain, editedNodeSymbols, functionSymbols, predicateSymbols],
+    );
 
     const setEditModeLock = (locked: boolean) => {
         editModeLockedRef.current = locked;
@@ -178,17 +220,21 @@ function App() {
             return;
         }
         const nextFormula = formula.trim();
-        setSyntaxTree(parseExpression(nextFormula, {
+        const nextTree = parseExpression(nextFormula, {
             functions: functions.map(({ name }) => name.trim()).filter(Boolean),
             predicates: predicates.map(({ name }) => name.trim()).filter(Boolean),
-        }));
+            values: domain,
+        });
+        setSyntaxTree(nextTree);
+        setEnvironmentValues({});
+        setEditedNodeSymbols({});
         setSelectedNode(null);
         setRenderedFormula(nextFormula);
         setDemonstrationResult(true);
         setToast("Vista actualizada. El motor semántico se conectará después.");
     };
 
-    const updateTree = (tree: SyntaxNode) => {
+    const commitTree = (tree: SyntaxNode) => {
         const nextFormula = serializeSyntaxTree(tree);
         setSyntaxTree(tree);
         setFormula(nextFormula);
@@ -196,18 +242,126 @@ function App() {
         setDemonstrationResult(null);
     };
 
+    const updateTree = (tree: SyntaxNode) => {
+        let reconciledTree = tree;
+        const previousEnvironmentNodeIds = syntaxTree
+            ? getEnvironmentNodeIds(syntaxTree)
+            : [];
+
+        for (const nodeId of previousEnvironmentNodeIds) {
+            const previousNode = syntaxTree && findSyntaxNode(syntaxTree, nodeId);
+            const nextNode = findSyntaxNode(reconciledTree, nodeId);
+            if (!previousNode || !nextNode || previousNode.label === nextNode.label) {
+                continue;
+            }
+
+            const role = classifySyntaxSymbol(nextNode.label, {
+                values: domain,
+                predicates: predicateSymbols,
+                functions: functionSymbols,
+            });
+            if (
+                nextNode.substitutedFor
+                && (role === "predicate" || role === "function" || role === "logical")
+            ) {
+                reconciledTree = clearSyntaxNodeSubstitution(
+                    reconciledTree,
+                    nodeId,
+                    nextNode.kind,
+                );
+            } else if (
+                !isVariableLabel(nextNode.label)
+                && !nextNode.substitutedFor
+                && (role === "value" || role === null)
+            ) {
+                reconciledTree = trackSyntaxNodeSubstitution(
+                    reconciledTree,
+                    nodeId,
+                    previousNode.substitutedFor ?? previousNode.label,
+                );
+            }
+        }
+
+        const substitutions = getSubstitutionValues(reconciledTree);
+        const nextEnvironmentValues: Record<string, string> = {};
+
+        for (const [variable, values] of Object.entries(substitutions)) {
+            const previousValue = environmentValues[variable];
+            const editedValue =
+                values.find((value) => value !== previousValue) ??
+                values[0] ??
+                previousValue;
+
+            if (!editedValue) continue;
+            reconciledTree = substituteFreeVariable(
+                reconciledTree,
+                variable,
+                editedValue,
+            );
+            nextEnvironmentValues[variable] = editedValue;
+        }
+
+        for (const variable of getFreeVariables(reconciledTree)) {
+            nextEnvironmentValues[variable] = "";
+        }
+
+        const previousNodes = new Map(
+            syntaxTree
+                ? getSyntaxNodes(syntaxTree).map((node) => [node.id, node] as const)
+                : [],
+        );
+        setEditedNodeSymbols((current) => {
+            const next: Record<string, string> = {};
+
+            for (const nodeId of Object.keys(current)) {
+                const node = findSyntaxNode(reconciledTree, nodeId);
+                if (node) next[nodeId] = node.label;
+            }
+
+            for (const node of getSyntaxNodes(reconciledTree)) {
+                const previousNode = previousNodes.get(node.id);
+                if (!previousNode || previousNode.label !== node.label) {
+                    next[node.id] = node.label;
+                }
+            }
+
+            return next;
+        });
+
+        commitTree(reconciledTree);
+        setEnvironmentValues(nextEnvironmentValues);
+    };
+
+    const updateEnvironment = (variable: string, value: string) => {
+        setEnvironmentValues((current) => ({ ...current, [variable]: value }));
+        if (!syntaxTree) return;
+        const nextTree = substituteFreeVariable(syntaxTree, variable, value);
+        setEditedNodeSymbols((current) =>
+            Object.fromEntries(
+                Object.keys(current).flatMap((nodeId) => {
+                    const node = findSyntaxNode(nextTree, nodeId);
+                    return node ? [[nodeId, node.label]] : [];
+                }),
+            ),
+        );
+        commitTree(nextTree);
+    };
+
     return (
         <main className={`app-shell ${drawerOpen ? "drawer-is-open" : ""}`}>
             <Workspace
                 editMode={editMode}
+                invalidDomainSymbols={invalidDomainSymbols}
+                environmentMissing={environmentMissing}
                 formula={renderedFormula}
-                functionSymbols={functions.map(({ name }) => name.trim()).filter(Boolean)}
+                freeVariables={freeVariables}
+                functionSymbols={functionSymbols}
                 onOpenEvidence={() => setEvidenceOpen(true)}
                 onOpenHelp={() => setHelpOpen(true)}
                 onEditModeLockChange={setEditModeLock}
                 onSelectNode={selectNode}
                 onTreeChange={updateTree}
-                predicateSymbols={predicates.map(({ name }) => name.trim()).filter(Boolean)}
+                predicateSymbols={predicateSymbols}
                 result={demonstrationResult}
                 selectedNode={selectedNode}
                 tree={syntaxTree}
@@ -220,6 +374,8 @@ function App() {
                     setSyntaxTree(null);
                     setSelectedNode(null);
                     setEditModeLock(false);
+                    setEnvironmentValues({});
+                    setEditedNodeSymbols({});
                     setDemonstrationResult(null);
                 }}
                 onEvaluate={evaluateMock}
@@ -271,10 +427,10 @@ function App() {
 
                 <InterpretationSection
                     domain={domain}
-                    environmentValue={environmentValue}
+                    environmentValues={environmentValues}
+                    freeVariables={environmentVariables}
                     functionOutputs={functionOutputs}
                     functions={functionInterpretations}
-                    hasFreeVariables={hasFreeVariables}
                     onAddPredicateTuple={(predicate) =>
                         setPredicateTuples((current) => ({
                             ...current,
@@ -284,7 +440,7 @@ function App() {
                             ],
                         }))
                     }
-                    onEnvironmentChange={setEnvironmentValue}
+                    onEnvironmentChange={updateEnvironment}
                     onFunctionOutputChange={(key, value) =>
                         setFunctionOutputs((current) => ({ ...current, [key]: value }))
                     }
@@ -304,7 +460,6 @@ function App() {
                             ),
                         }))
                     }
-                    onToggleFreeVariables={() => setHasFreeVariables((current) => !current)}
                     predicates={predicates}
                     predicateTuples={predicateTuples}
                 />

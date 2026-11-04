@@ -5,15 +5,24 @@ import "./workspace-controls.css";
 type ResultButtonProps = {
     result: DemonstrationResult;
     environmentMissing: boolean;
+    invalidDomainSymbols: string[];
     onOpen: () => void;
 };
 
-export function ResultButton({ result, environmentMissing, onOpen }: ResultButtonProps) {
-    const state = environmentMissing
+export function ResultButton({
+    result,
+    environmentMissing,
+    invalidDomainSymbols,
+    onOpen,
+}: ResultButtonProps) {
+    const hasDomainWarning = invalidDomainSymbols.length > 0;
+    const hasWarning = hasDomainWarning || environmentMissing;
+    const state = hasWarning
         ? "warning"
         : result === null ? "neutral" : result ? "true" : "false";
-    const label = environmentMissing
-        ? "Entorno faltante"
+    const label = hasDomainWarning
+        ? `Fuera del dominio: ${invalidDomainSymbols.join(", ")}`
+        : environmentMissing ? "Entorno faltante"
         : result === null ? "Sin evaluar" : result ? "Verdadero" : "Falso";
 
     return (
@@ -24,7 +33,7 @@ export function ResultButton({ result, environmentMissing, onOpen }: ResultButto
             type="button"
         >
             <span className="result-indicator" aria-hidden="true">
-                {environmentMissing ? (
+                {hasWarning ? (
                     <span>!</span>
                 ) : result === null ? (
                     <span>?</span>

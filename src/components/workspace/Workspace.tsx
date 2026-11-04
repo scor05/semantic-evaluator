@@ -12,6 +12,7 @@ type WorkspaceProps = {
     tree: SyntaxNode | null;
     editMode: boolean;
     environmentMissing: boolean;
+    invalidDomainSymbols: string[];
     freeVariables: string[];
     functionSymbols: string[];
     predicateSymbols: string[];
@@ -29,6 +30,7 @@ export function Workspace({
     tree,
     editMode,
     environmentMissing,
+    invalidDomainSymbols,
     freeVariables,
     functionSymbols,
     predicateSymbols,
@@ -45,6 +47,7 @@ export function Workspace({
             <WorkspaceHeader
                 formula={formula}
                 freeVariables={freeVariables}
+                invalidDomainSymbols={invalidDomainSymbols}
                 onOpenHelp={onOpenHelp}
             />
             <SyntaxTree
@@ -61,6 +64,7 @@ export function Workspace({
                 <InteractionHint editMode={editMode} />
                 <ResultButton
                     environmentMissing={environmentMissing}
+                    invalidDomainSymbols={invalidDomainSymbols}
                     onOpen={onOpenEvidence}
                     result={result}
                 />

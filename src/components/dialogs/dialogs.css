@@ -144,24 +144,15 @@
 }
 
 .arrow-keys {
-  display: grid;
+  display: flex;
   width: 110px;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  align-items: center;
 }
 
 .arrow-keys kbd {
-  min-width: 34px;
-  height: 31px;
+  min-width: 38px;
+  height: 38px;
   padding: 0;
-}
-
-.arrow-keys kbd:first-child {
-  grid-column: 2;
-}
-
-.arrow-keys kbd:nth-child(2) {
-  grid-column: 1;
 }
 
 .edit-control-row {
