@@ -8,9 +8,9 @@ type HelpDialogProps = {
 
 const controls = [
     { keys: ["Q", "E"], title: "Acercar y alejar", description: "Mantén presionado para ajustar la distancia." },
-    { keys: ["A", "D"], title: "Rotación horizontal", description: "Mantén presionado para orbitar sobre el eje Y." },
-    { keys: ["W", "S"], title: "Rotación vertical", description: "Mantén presionado para orbitar sobre el eje X." },
-    { keys: ["Z", "X"], title: "Inclinación", description: "Mantén presionado para girar sobre el eje de visión." },
+    { keys: ["A", "D"], title: "Movimiento horizontal", description: "Mantén presionado para girar horizontalmente respecto a la cámara." },
+    { keys: ["W", "S"], title: "Movimiento vertical", description: "Mantén presionado para girar verticalmente respecto a la cámara." },
+    { keys: ["Z", "X"], title: "Inclinación", description: "Mantén presionado para girar respecto al eje de visión de la cámara." },
 ];
 
 export function HelpDialog({ onClose }: HelpDialogProps) {

@@ -59,6 +59,8 @@ export class SyntaxTreeRenderer {
     private readonly callbacks: RendererCallbacks;
     private readonly container: HTMLElement;
     private pointerStart = new THREE.Vector2();
+    private pointerLast = new THREE.Vector2();
+    private rotationPointerId: number | null = null;
     private tree: SyntaxNode | null = null;
     private selectedNodeId: string | null = null;
     private editMode = false;
@@ -81,6 +83,8 @@ export class SyntaxTreeRenderer {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.075;
         this.controls.enablePan = true;
+        this.controls.enableRotate = false;
+        this.controls.screenSpacePanning = true;
         this.controls.minDistance = 5;
         this.controls.maxDistance = 30;
         this.controls.target.set(0, 0, 0);
@@ -89,10 +93,12 @@ export class SyntaxTreeRenderer {
 
         this.scene.add(this.dynamicRoot);
         this.renderer.domElement.addEventListener("pointerdown", this.handlePointerDown);
+        this.renderer.domElement.addEventListener("pointermove", this.handlePointerMove);
         this.renderer.domElement.addEventListener("pointerup", this.handlePointerUp);
+        this.renderer.domElement.addEventListener("pointercancel", this.handlePointerCancel);
         window.addEventListener("keydown", this.handleKeyDown);
         window.addEventListener("keyup", this.handleKeyUp);
-        window.addEventListener("blur", this.clearMovementKeys);
+        window.addEventListener("blur", this.handleWindowBlur);
         this.resizeObserver = new ResizeObserver(this.resize);
         this.resizeObserver.observe(container);
         this.resize();
@@ -115,7 +121,10 @@ export class SyntaxTreeRenderer {
         this.editMode = editMode;
         this.selectedNodeId = selectedNodeId;
         this.controls.enabled = !editMode && !this.hasActiveKeyboardMovement();
-        if (editMode) this.clearMovementKeys();
+        if (editMode) {
+            this.clearMovementKeys();
+            this.finishMouseRotation();
+        }
         this.renderer.domElement.classList.toggle("is-editing", editMode);
         if (changed && this.tree) this.rebuildScene();
     }
@@ -125,10 +134,12 @@ export class SyntaxTreeRenderer {
         this.renderer.setAnimationLoop(null);
         this.resizeObserver.disconnect();
         this.renderer.domElement.removeEventListener("pointerdown", this.handlePointerDown);
+        this.renderer.domElement.removeEventListener("pointermove", this.handlePointerMove);
         this.renderer.domElement.removeEventListener("pointerup", this.handlePointerUp);
+        this.renderer.domElement.removeEventListener("pointercancel", this.handlePointerCancel);
         window.removeEventListener("keydown", this.handleKeyDown);
         window.removeEventListener("keyup", this.handleKeyUp);
-        window.removeEventListener("blur", this.clearMovementKeys);
+        window.removeEventListener("blur", this.handleWindowBlur);
         this.controls.removeEventListener("start", this.handleControlsStart);
         this.controls.removeEventListener("end", this.handleControlsEnd);
         this.controls.dispose();
@@ -328,9 +339,42 @@ export class SyntaxTreeRenderer {
 
     private handlePointerDown = (event: PointerEvent): void => {
         this.pointerStart.set(event.clientX, event.clientY);
+        if (
+            this.editMode
+            || event.button !== 0
+            || event.ctrlKey
+            || event.metaKey
+            || event.altKey
+            || event.shiftKey
+            || this.hasActiveKeyboardMovement()
+        ) return;
+
+        this.rotationPointerId = event.pointerId;
+        this.pointerLast.copy(this.pointerStart);
+        this.mouseNavigationActive = true;
+        this.movementKeys.clear();
+        this.renderer.domElement.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    };
+
+    private handlePointerMove = (event: PointerEvent): void => {
+        if (event.pointerId !== this.rotationPointerId) return;
+
+        const horizontalMovement = event.clientX - this.pointerLast.x;
+        const verticalMovement = event.clientY - this.pointerLast.y;
+        this.pointerLast.set(event.clientX, event.clientY);
+        this.rotateCameraRelative(
+            -verticalMovement * 0.005,
+            -horizontalMovement * 0.005,
+        );
+        event.preventDefault();
     };
 
     private handlePointerUp = (event: PointerEvent): void => {
+        if (event.pointerId === this.rotationPointerId) {
+            this.finishMouseRotation();
+            return;
+        }
         if (!this.editMode) return;
         const movement = this.pointerStart.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
         if (movement > 5) return;
@@ -357,6 +401,10 @@ export class SyntaxTreeRenderer {
         } else {
             this.callbacks.onSelectNode(nodeId);
         }
+    };
+
+    private handlePointerCancel = (event: PointerEvent): void => {
+        if (event.pointerId === this.rotationPointerId) this.finishMouseRotation();
     };
 
     private handleKeyDown = (event: KeyboardEvent): void => {
@@ -397,6 +445,22 @@ export class SyntaxTreeRenderer {
         if (!this.editMode && !this.mouseNavigationActive) this.controls.enabled = true;
     };
 
+    private handleWindowBlur = (): void => {
+        this.clearMovementKeys();
+        this.finishMouseRotation();
+    };
+
+    private finishMouseRotation(): void {
+        if (this.rotationPointerId !== null) {
+            if (this.renderer.domElement.hasPointerCapture(this.rotationPointerId)) {
+                this.renderer.domElement.releasePointerCapture(this.rotationPointerId);
+            }
+            this.rotationPointerId = null;
+        }
+        this.mouseNavigationActive = false;
+        if (!this.editMode && !this.hasActiveKeyboardMovement()) this.controls.enabled = true;
+    }
+
     private handleControlsStart = (): void => {
         this.mouseNavigationActive = true;
         this.movementKeys.clear();
@@ -418,8 +482,8 @@ export class SyntaxTreeRenderer {
             - Number(this.movementKeys.has("ArrowDown"));
         const horizontalOrbit = Number(this.movementKeys.has("KeyD"))
             - Number(this.movementKeys.has("KeyA"));
-        const verticalOrbit = Number(this.movementKeys.has("KeyS"))
-            - Number(this.movementKeys.has("KeyW"));
+        const verticalOrbit = Number(this.movementKeys.has("KeyW"))
+            - Number(this.movementKeys.has("KeyS"));
         const zoomDirection = Number(this.movementKeys.has("KeyE"))
             - Number(this.movementKeys.has("KeyQ"));
         const rollDirection = Number(this.movementKeys.has("KeyX"))
@@ -442,28 +506,80 @@ export class SyntaxTreeRenderer {
             this.controls.target.y += movement;
         }
 
-        const offset = this.camera.position.clone().sub(this.controls.target);
-        const spherical = new THREE.Spherical().setFromVector3(offset);
-        if (horizontalOrbit !== 0 || verticalOrbit !== 0 || zoomDirection !== 0) {
-            const orbitSpeed = 1.15 * speedMultiplier * deltaSeconds;
-            spherical.theta += horizontalOrbit * orbitSpeed;
-            spherical.phi += verticalOrbit * orbitSpeed;
-            spherical.phi = THREE.MathUtils.clamp(spherical.phi, 0.08, Math.PI - 0.08);
-            spherical.radius = THREE.MathUtils.clamp(
-                spherical.radius * Math.exp(zoomDirection * 1.35 * speedMultiplier * deltaSeconds),
+        if (zoomDirection !== 0) {
+            const offset = this.camera.position.clone().sub(this.controls.target);
+            const radius = THREE.MathUtils.clamp(
+                offset.length() * Math.exp(zoomDirection * 1.35 * speedMultiplier * deltaSeconds),
                 this.controls.minDistance,
                 this.controls.maxDistance,
             );
-            this.camera.position.copy(this.controls.target).add(offset.setFromSpherical(spherical));
+            this.camera.position.copy(this.controls.target).add(offset.setLength(radius));
+        }
+
+        if (horizontalOrbit !== 0 || verticalOrbit !== 0) {
+            const orbitSpeed = 1.15 * speedMultiplier * deltaSeconds;
+            this.rotateCameraRelative(
+                verticalOrbit * orbitSpeed,
+                horizontalOrbit * orbitSpeed,
+            );
         }
 
         if (rollDirection !== 0) {
-            const viewDirection = this.controls.target.clone().sub(this.camera.position).normalize();
-            this.camera.up.applyAxisAngle(
-                viewDirection,
+            this.rollCameraRelative(
                 rollDirection * 1.15 * speedMultiplier * deltaSeconds,
-            ).normalize();
+            );
         }
+    }
+
+    private rotateCameraRelative(
+        horizontalAxisAngle: number,
+        verticalAxisAngle: number,
+    ): void {
+        const offset = this.camera.position.clone().sub(this.controls.target);
+        if (offset.lengthSq() < 1e-8) return;
+
+        // These angles name the camera axes, not the visible direction of travel:
+        // vertical movement rotates around camera-right, while horizontal movement
+        // rotates around camera-up. Both axes are derived after every increment.
+        if (horizontalAxisAngle !== 0) {
+            const cameraForward = offset.clone().negate().normalize();
+            const cameraRight = cameraForward.clone().cross(this.camera.up).normalize();
+            if (cameraRight.lengthSq() >= 1e-8) {
+                offset.applyAxisAngle(cameraRight, horizontalAxisAngle);
+                this.camera.up.applyAxisAngle(cameraRight, horizontalAxisAngle);
+            }
+        }
+
+        if (verticalAxisAngle !== 0) {
+            const cameraUp = this.camera.up.clone().normalize();
+            offset.applyAxisAngle(cameraUp, verticalAxisAngle);
+        }
+
+        this.camera.position.copy(this.controls.target).add(offset);
+        this.orthonormalizeCameraBasis();
+        this.camera.lookAt(this.controls.target);
+    }
+
+    private rollCameraRelative(angle: number): void {
+        const cameraForward = this.controls.target.clone().sub(this.camera.position);
+        if (cameraForward.lengthSq() < 1e-8) return;
+
+        this.camera.up.applyAxisAngle(cameraForward.normalize(), angle);
+        this.orthonormalizeCameraBasis();
+        this.camera.lookAt(this.controls.target);
+    }
+
+    private orthonormalizeCameraBasis(): void {
+        const cameraForward = this.controls.target.clone().sub(this.camera.position).normalize();
+        let cameraRight = cameraForward.clone().cross(this.camera.up);
+        if (cameraRight.lengthSq() < 1e-8) {
+            const fallbackUp = Math.abs(cameraForward.y) < 0.99
+                ? new THREE.Vector3(0, 1, 0)
+                : new THREE.Vector3(1, 0, 0);
+            cameraRight = cameraForward.clone().cross(fallbackUp);
+        }
+        cameraRight.normalize();
+        this.camera.up.copy(cameraRight.cross(cameraForward).normalize());
     }
 
     private resize = (): void => {
