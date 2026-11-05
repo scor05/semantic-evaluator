@@ -21,13 +21,18 @@ export function getInterpretationErrors({
     predicateTuples,
 }: InterpretationState): InterpretationError[] {
     const functionErrors = functions.flatMap((definition) => {
-        const missingCount = cartesianPower(domain, definition.arity).filter((tuple) => {
+        const invalidOutputs = cartesianPower(domain, definition.arity).flatMap((tuple) => {
             const tupleKey = tuple.join("|") || "constant";
             const output = functionOutputs[`${definition.id}:${tupleKey}`];
-            return !output || !domain.includes(output);
-        }).length;
-        return missingCount > 0
-            ? [{ symbol: definition.name || "f", kind: "function" as const, missingCount }]
+            return !output || !domain.includes(output) ? [output ?? ""] : [];
+        });
+        return invalidOutputs.length > 0
+            ? [{
+                symbol: definition.name || "f",
+                kind: "function" as const,
+                missingCount: invalidOutputs.length,
+                reason: invalidOutputs.some(Boolean) ? "invalid" as const : "missing" as const,
+            }]
             : [];
     });
 
@@ -42,6 +47,7 @@ export function getInterpretationErrors({
                 symbol: name || "P",
                 kind: "predicate" as const,
                 missingCount: Math.max(1, invalidTupleCount),
+                reason: invalidTupleCount > 0 ? "invalid" as const : "missing" as const,
             }]
             : [];
     });
@@ -69,7 +75,11 @@ export function createDefaultFunctionOutputs(
 }
 
 function isValidPredicateTuple(tuple: string, arity: number, domain: string[]): boolean {
-    const normalized = tuple.trim().replace(/^\(|\)$/gu, "");
-    const values = normalized ? normalized.split(",").map((value) => value.trim()) : [];
+    const values = getPredicateTupleValues(tuple);
     return values.length === arity && values.every((value) => domain.includes(value));
+}
+
+export function getPredicateTupleValues(tuple: string): string[] {
+    const normalized = tuple.trim().replace(/^\(|\)$/gu, "");
+    return normalized ? normalized.split(",").map((value) => value.trim()) : [];
 }

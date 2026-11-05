@@ -19,4 +19,5 @@ export type InterpretationError = {
     symbol: string;
     kind: "function" | "predicate";
     missingCount: number;
+    reason: "missing" | "invalid";
 };

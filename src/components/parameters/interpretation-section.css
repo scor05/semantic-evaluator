@@ -145,26 +145,105 @@ select:focus {
 
 .tuple-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 3px;
   margin: 3px 0;
 }
 
-.tuple-row input {
+.tuple-field {
   width: calc(100% - 30px);
-  height: 28px;
-  padding: 0 7px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  outline: 0;
-  color: #aeb9b6;
-  background: rgba(255, 255, 255, 0.025);
-  font-family: var(--font-regular-text);
-  font-size: var(--size-regular-text);
+  min-width: 0;
 }
 
-.tuple-row input:focus {
+.tuple-editor {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 7px;
+  overflow-x: auto;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #aeb9b6;
+  background: rgba(255, 255, 255, 0.025);
+  scrollbar-width: none;
+}
+
+.tuple-editor:focus-within {
   border-color: rgba(121, 227, 188, 0.3);
+}
+
+.tuple-slot-group {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.tuple-punctuation {
+  flex: 0 0 auto;
+  color: #77827f;
+  font-family: var(--font-regular-text);
+  font-size: var(--size-regular-text);
+  user-select: none;
+}
+
+.tuple-slot {
+  width: 1.35em;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  color: #aeb9b6;
+  background: transparent;
+  font-family: var(--font-regular-text);
+  font-size: var(--size-regular-text);
+  text-align: center;
+}
+
+.tuple-slot:focus,
+.tuple-slot:focus-visible {
+  outline: none;
+}
+
+.tuple-slot::placeholder {
+  color: #56615f;
+  opacity: 1;
+}
+
+.tuple-error-message {
+  display: block;
+  margin: 3px 2px 5px;
+  color: #f1a94b;
+  font-family: var(--font-regular-text);
+  font-size: var(--size-regular-text);
+  line-height: 1.25;
+}
+
+.has-interpretation-error {
+  border-color: rgba(241, 169, 75, 0.72) !important;
+  animation: interpretation-error-pulse 1.7s ease-in-out infinite;
+}
+
+@keyframes interpretation-error-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(241, 169, 75, 0.08);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(241, 169, 75, 0.2),
+      0 0 13px rgba(241, 169, 75, 0.52);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .has-interpretation-error {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(241, 169, 75, 0.24);
+  }
 }
 
 .tiny-add {

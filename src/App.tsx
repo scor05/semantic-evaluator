@@ -9,6 +9,7 @@ import { Toast } from "./components/ui/Toast";
 import { Workspace } from "./components/workspace/Workspace";
 import {
     createDefaultFunctionOutputs,
+    getPredicateTupleValues,
     getInterpretationErrors,
 } from "./domain/interpretation";
 import {
@@ -96,7 +97,7 @@ function App() {
         return [...new Set([...freeVariables, ...getSubstitutedVariables(syntaxTree)])];
     }, [freeVariables, syntaxTree]);
     const environmentMissing = freeVariables.some(
-        (variable) => !environmentValues[variable]?.trim(),
+        (variable) => !domain.includes(environmentValues[variable]?.trim() ?? ""),
     );
     const invalidDomainSymbols = useMemo(
         () => [...new Set(Object.values(editedNodeSymbols))].filter(
@@ -233,6 +234,20 @@ function App() {
         if (!value || domain.includes(value)) return;
         setDomain((current) => [...current, value]);
         setDomainDraft("");
+    };
+
+    const removeDomainValue = (value: string) => {
+        setDomain((current) => current.filter((item) => item !== value));
+        setPredicateTuples((current) =>
+            Object.fromEntries(
+                Object.entries(current).map(([predicate, tuples]) => [
+                    predicate,
+                    tuples.filter(
+                        (tuple) => !getPredicateTupleValues(tuple).includes(value),
+                    ),
+                ]),
+            ),
+        );
     };
 
     const evaluateMock = () => {
@@ -408,6 +423,13 @@ function App() {
                 onToggle={() => setDrawerOpen((current) => !current)}
                 open={drawerOpen}
             >
+                <FormulaSection
+                    formula={formula}
+                    inputRef={formulaInputRef}
+                    onFormulaChange={setFormula}
+                    onInsertOperator={insertOperator}
+                />
+
                 <LanguageSection
                     domain={domain}
                     domainDraft={domainDraft}
@@ -426,9 +448,7 @@ function App() {
                         ])
                     }
                     onDomainDraftChange={setDomainDraft}
-                    onRemoveDomainValue={(value) =>
-                        setDomain((current) => current.filter((item) => item !== value))
-                    }
+                    onRemoveDomainValue={removeDomainValue}
                     onRemoveFunction={(id) =>
                         setFunctions((current) =>
                             current.filter((definition) => definition.id !== id),
@@ -444,13 +464,6 @@ function App() {
                     predicates={predicates}
                 />
 
-                <FormulaSection
-                    formula={formula}
-                    inputRef={formulaInputRef}
-                    onFormulaChange={setFormula}
-                    onInsertOperator={insertOperator}
-                />
-
                 <InterpretationSection
                     domain={domain}
                     environmentValues={environmentValues}
@@ -462,7 +475,7 @@ function App() {
                             ...current,
                             [predicate.name]: [
                                 ...(current[predicate.name] ?? []),
-                                predicate.arity > 1 ? "(…, …)" : "…",
+                                `(${Array.from({ length: predicate.arity }, () => "").join(", ")})`,
                             ],
                         }))
                     }

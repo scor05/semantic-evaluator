@@ -25,6 +25,9 @@ export function WorkspaceHeader({
     const hasInvalidSymbol = invalidDomainSymbols.length > 0;
     const firstArityError = arityErrors[0];
     const hasInterpretationError = interpretationErrors.length > 0;
+    const hasInvalidInterpretation = interpretationErrors.some(
+        ({ reason }) => reason === "invalid",
+    );
     const hasFormulaError = hasInvalidSymbol || Boolean(firstArityError) || hasInterpretationError;
     const status = hasFormulaError ? "invalid" : isOpen ? "open" : "closed";
 
@@ -41,7 +44,7 @@ export function WorkspaceHeader({
                             : firstArityError
                                 ? `Aridad inválida · ${firstArityError.symbol} tiene ${firstArityError.actual} de ${firstArityError.expected} argumentos`
                             : hasInterpretationError
-                                ? `Interpretación faltante · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
+                                ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"} · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
                             : isOpen
                             ? `Fórmula abierta · ${freeVariables.join(", ")} ${freeVariables.length === 1 ? "libre" : "libres"}`
                             : "Fórmula cerrada"}

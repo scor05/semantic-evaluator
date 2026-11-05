@@ -30,6 +30,9 @@ export function ResultButton({
     const firstArityError = arityErrors[0];
     const additionalArityErrors = Math.max(0, arityErrors.length - 1);
     const missingInterpretations = interpretationErrors.map(({ symbol }) => symbol);
+    const hasInvalidInterpretation = interpretationErrors.some(
+        ({ reason }) => reason === "invalid",
+    );
     const state = hasWarning
         ? "warning"
         : result === null ? "neutral" : result ? "true" : "false";
@@ -38,7 +41,7 @@ export function ResultButton({
         : firstArityError
             ? `Aridad inválida: ${firstArityError.symbol} (${firstArityError.actual}/${firstArityError.expected})${additionalArityErrors ? ` +${additionalArityErrors}` : ""}`
         : hasInterpretationWarning
-            ? `Interpretación faltante: ${missingInterpretations.join(", ")}`
+            ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"}: ${missingInterpretations.join(", ")}`
         : environmentMissing ? "Entorno faltante"
         : result === null ? "Sin evaluar" : result ? "Verdadero" : "Falso";
 

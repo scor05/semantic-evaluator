@@ -127,6 +127,7 @@
 .key-group {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
 }
 
@@ -143,23 +144,13 @@
   background: rgba(255, 255, 255, 0.055);
 }
 
-.arrow-keys {
-  display: flex;
-  width: 110px;
-  align-items: center;
-}
-
-.arrow-keys kbd {
-  min-width: 38px;
-  height: 38px;
-  padding: 0;
-}
-
 .edit-control-row {
   background: rgba(121, 227, 188, 0.035);
 }
 
 .edit-control-row .key-group kbd {
+  min-width: 75px;
+  min-height: 45px;
   border-color: rgba(121, 227, 188, 0.3);
   color: var(--mint-bright);
   background: rgba(121, 227, 188, 0.08);
