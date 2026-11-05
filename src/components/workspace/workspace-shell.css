@@ -113,9 +113,8 @@
 }
 
 .header-button:hover {
-  border-color: rgba(121, 227, 188, 0.3);
   color: var(--text);
-  background: rgba(121, 227, 188, 0.05);
+  background: rgba(121, 227, 181, 0.25);
 }
 
 .scene-title {

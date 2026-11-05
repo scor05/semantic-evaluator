@@ -1,6 +1,7 @@
 import { CircleHelp } from "lucide-react";
 import type { SyntaxArityError } from "../../domain/syntaxTree";
 import type { InterpretationError } from "../../types/logic";
+import { SpotifyDialog } from "../dialogs/SpotifyDialog.tsx";
 import "../../styles/shared-controls.css";
 import "./workspace-shell.css";
 
@@ -43,11 +44,11 @@ export function WorkspaceHeader({
                             ? `Símbolo no reconocido · ${invalidDomainSymbols.join(", ")}`
                             : firstArityError
                                 ? `Aridad inválida · ${firstArityError.symbol} tiene ${firstArityError.actual} de ${firstArityError.expected} argumentos`
-                            : hasInterpretationError
-                                ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"} · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
-                            : isOpen
-                            ? `Fórmula abierta · ${freeVariables.join(", ")} ${freeVariables.length === 1 ? "libre" : "libres"}`
-                            : "Fórmula cerrada"}
+                                : hasInterpretationError
+                                    ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"} · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
+                                    : isOpen
+                                        ? `Fórmula abierta · ${freeVariables.join(", ")} ${freeVariables.length === 1 ? "libre" : "libres"}`
+                                        : "Fórmula cerrada"}
                     </p>
                 )}
             </div>
