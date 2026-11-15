@@ -6,6 +6,7 @@ import { InterpretationSection } from "./components/parameters/InterpretationSec
 import { LanguageSection } from "./components/parameters/LanguageSection";
 import { ParameterDrawer } from "./components/parameters/ParameterDrawer";
 import { Toast } from "./components/ui/Toast";
+import { ValidationDialog } from "./components/validation/ValidationDialog";
 import { Workspace } from "./components/workspace/Workspace";
 import {
     createDefaultFunctionOutputs,
@@ -18,18 +19,21 @@ import {
     findSyntaxNode,
     getEnvironmentNodeIds,
     getFreeVariables,
-    getSyntaxArityErrors,
     getSubstitutionValues,
     getSubstitutedVariables,
-    getSyntaxNodes,
     inferSyntaxNodeKind,
     isVariableLabel,
-    parseExpression,
     serializeSyntaxTree,
     substituteFreeVariable,
     trackSyntaxNodeSubstitution,
     type SyntaxNode,
 } from "./domain/syntaxTree";
+import {
+    getValidationState,
+    validateFormulaText,
+    validateSyntaxTree,
+    type LanguageSignature,
+} from "./domain/validation";
 import type {
     DemonstrationResult,
     FunctionDefinition,
@@ -50,13 +54,8 @@ function App() {
         { id: 2, name: "Q", arity: 1 },
     ]);
     const [formula, setFormula] = useState("∀x(P(x,y) → ∃y Q(y))");
-    const [syntaxTree, setSyntaxTree] = useState<SyntaxNode | null>(() =>
-        parseExpression(formula, {
-            functions: functions.map(({ name }) => name),
-            predicates: predicates.map(({ name }) => name),
-            values: domain,
-        })
-    );
+    const [formulaOrigin, setFormulaOrigin] = useState<"text" | "tree">("text");
+    const [syntaxTree, setSyntaxTree] = useState<SyntaxNode | null>(null);
     const [renderedFormula, setRenderedFormula] = useState(formula);
     const [functionOutputs, setFunctionOutputs] = useState<Record<string, string>>(() =>
         createDefaultFunctionOutputs(domain, functions)
@@ -66,13 +65,12 @@ function App() {
         Q: ["1", "0"],
     });
     const [environmentValues, setEnvironmentValues] = useState<Record<string, string>>({});
-    const [editedNodeSymbols, setEditedNodeSymbols] =
-        useState<Record<string, string>>({});
     const [controlEditMode, setControlEditMode] = useState(false);
     const [editModeLocked, setEditModeLocked] = useState(false);
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
     const [helpOpen, setHelpOpen] = useState(false);
     const [evidenceOpen, setEvidenceOpen] = useState(false);
+    const [validationOpen, setValidationOpen] = useState(false);
     const [demonstrationResult, setDemonstrationResult] =
         useState<DemonstrationResult>(null);
     const [toast, setToast] = useState<string | null>(null);
@@ -99,19 +97,35 @@ function App() {
     const environmentMissing = freeVariables.some(
         (variable) => !domain.includes(environmentValues[variable]?.trim() ?? ""),
     );
-    const invalidDomainSymbols = useMemo(
-        () => [...new Set(Object.values(editedNodeSymbols))].filter(
-            (symbol) => !classifySyntaxSymbol(symbol, {
-                values: domain,
-                predicates: predicateSymbols,
-                functions: functionSymbols,
-            }),
-        ),
-        [domain, editedNodeSymbols, functionSymbols, predicateSymbols],
+    const signature = useMemo<LanguageSignature>(
+        () => ({ functions, predicates, domain }),
+        [domain, functions, predicates],
     );
-    const arityErrors = useMemo(
-        () => syntaxTree ? getSyntaxArityErrors(syntaxTree, { functions, predicates }) : [],
-        [functions, predicates, syntaxTree],
+    const textValidation = useMemo(
+        () => formulaOrigin === "text"
+            ? validateFormulaText(formula, signature, environmentValues)
+            : null,
+        [environmentValues, formula, formulaOrigin, signature],
+    );
+    const formulaValidation = useMemo(
+        () => textValidation
+            ?? (syntaxTree
+                ? validateSyntaxTree(syntaxTree, signature, environmentValues)
+                : validateFormulaText("", signature)),
+        [environmentValues, signature, syntaxTree, textValidation],
+    );
+    const validationState = getValidationState(formulaValidation);
+    const treeIsStale = formulaOrigin === "text"
+        && validationState !== "empty"
+        && !textValidation?.tree
+        && syntaxTree !== null;
+    const errorNodeIds = useMemo(
+        () => treeIsStale
+            ? []
+            : formulaValidation.diagnostics.flatMap(({ nodeId, severity, stage }) =>
+                nodeId && severity === "error" && stage !== "environment" ? [nodeId] : []
+            ),
+        [formulaValidation, treeIsStale],
     );
 
     const setEditModeLock = (locked: boolean) => {
@@ -149,6 +163,7 @@ function App() {
             if (event.key === "Escape") {
                 setHelpOpen(false);
                 setEvidenceOpen(false);
+                setValidationOpen(false);
             }
         };
         const onKeyUp = (event: KeyboardEvent) => {
@@ -171,6 +186,18 @@ function App() {
             window.removeEventListener("blur", resetEditMode);
         };
     }, []);
+
+    useEffect(() => {
+        const parsedTree = textValidation?.tree;
+        if (!parsedTree) return;
+        if (syntaxTree && treeShape(syntaxTree) === treeShape(parsedTree)) return;
+        setSyntaxTree(parsedTree);
+        setRenderedFormula(formula.trim());
+        setEnvironmentValues({});
+        setSelectedNode(null);
+        setEditModeLock(false);
+        setDemonstrationResult(null);
+    }, [textValidation]);
 
     useEffect(() => {
         if (!toast) return;
@@ -218,11 +245,16 @@ function App() {
         );
     };
 
+    const changeFormula = (value: string) => {
+        setFormula(value);
+        setFormulaOrigin("text");
+    };
+
     const insertOperator = (operator: string) => {
         const input = formulaInputRef.current;
         const start = input?.selectionStart ?? formula.length;
         const end = input?.selectionEnd ?? formula.length;
-        setFormula(`${formula.slice(0, start)}${operator}${formula.slice(end)}`);
+        changeFormula(`${formula.slice(0, start)}${operator}${formula.slice(end)}`);
         requestAnimationFrame(() => {
             input?.focus();
             input?.setSelectionRange(start + operator.length, start + operator.length);
@@ -250,28 +282,9 @@ function App() {
         );
     };
 
-    const evaluateMock = () => {
-        if (!formula.trim()) {
-            setToast("Escribe una fórmula antes de visualizarla.");
-            return;
-        }
-        const nextFormula = formula.trim();
-        const nextTree = parseExpression(nextFormula, {
-            functions: functions.map(({ name }) => name.trim()).filter(Boolean),
-            predicates: predicates.map(({ name }) => name.trim()).filter(Boolean),
-            values: domain,
-        });
-        setSyntaxTree(nextTree);
-        setEnvironmentValues({});
-        setEditedNodeSymbols({});
-        setSelectedNode(null);
-        setRenderedFormula(nextFormula);
-        setDemonstrationResult(true);
-        setToast("Vista actualizada. El motor semántico se conectará después.");
-    };
-
     const commitTree = (tree: SyntaxNode) => {
         const nextFormula = serializeSyntaxTree(tree);
+        setFormulaOrigin("tree");
         setSyntaxTree(tree);
         setFormula(nextFormula);
         setRenderedFormula(nextFormula);
@@ -345,29 +358,6 @@ function App() {
             nextEnvironmentValues[variable] = "";
         }
 
-        const previousNodes = new Map(
-            syntaxTree
-                ? getSyntaxNodes(syntaxTree).map((node) => [node.id, node] as const)
-                : [],
-        );
-        setEditedNodeSymbols((current) => {
-            const next: Record<string, string> = {};
-
-            for (const nodeId of Object.keys(current)) {
-                const node = findSyntaxNode(reconciledTree, nodeId);
-                if (node) next[nodeId] = node.label;
-            }
-
-            for (const node of getSyntaxNodes(reconciledTree)) {
-                const previousNode = previousNodes.get(node.id);
-                if (!previousNode || previousNode.label !== node.label) {
-                    next[node.id] = node.label;
-                }
-            }
-
-            return next;
-        });
-
         commitTree(reconciledTree);
         setEnvironmentValues(nextEnvironmentValues);
     };
@@ -375,59 +365,55 @@ function App() {
     const updateEnvironment = (variable: string, value: string) => {
         setEnvironmentValues((current) => ({ ...current, [variable]: value }));
         if (!syntaxTree) return;
-        const nextTree = substituteFreeVariable(syntaxTree, variable, value);
-        setEditedNodeSymbols((current) =>
-            Object.fromEntries(
-                Object.keys(current).flatMap((nodeId) => {
-                    const node = findSyntaxNode(nextTree, nodeId);
-                    return node ? [[nodeId, node.label]] : [];
-                }),
-            ),
-        );
-        commitTree(nextTree);
+        commitTree(substituteFreeVariable(syntaxTree, variable, value));
     };
 
     return (
         <main className={`app-shell ${drawerOpen ? "drawer-is-open" : ""}`}>
             <Workspace
-                arityErrors={arityErrors}
                 editMode={editMode}
-                invalidDomainSymbols={invalidDomainSymbols}
+                errorNodeIds={errorNodeIds}
                 interpretationErrors={interpretationErrors}
                 environmentMissing={environmentMissing}
-                formula={renderedFormula}
-                freeVariables={freeVariables}
+                formula={formulaOrigin === "text" && !textValidation?.tree ? formula : renderedFormula}
+                freeVariables={formulaValidation.freeVariables}
                 functionSymbols={functionSymbols}
-                onOpenEvidence={() => setEvidenceOpen(true)}
+                onOpenEvidence={() =>
+                    validationState === "valid" ? setEvidenceOpen(true) : setValidationOpen(true)
+                }
                 onOpenHelp={() => setHelpOpen(true)}
+                onOpenValidation={() => setValidationOpen(true)}
                 onSelectNode={selectNode}
                 onTreeChange={updateTree}
                 predicateSymbols={predicateSymbols}
                 result={demonstrationResult}
                 selectedNode={selectedNode}
                 tree={syntaxTree}
+                treeIsStale={treeIsStale}
+                validation={formulaValidation}
             />
 
             <ParameterDrawer
                 onClear={() => {
                     setFormula("");
+                    setFormulaOrigin("text");
                     setRenderedFormula("");
                     setSyntaxTree(null);
                     setSelectedNode(null);
                     setEditModeLock(false);
                     setEnvironmentValues({});
-                    setEditedNodeSymbols({});
                     setDemonstrationResult(null);
                 }}
-                onEvaluate={evaluateMock}
                 onToggle={() => setDrawerOpen((current) => !current)}
                 open={drawerOpen}
             >
                 <FormulaSection
                     formula={formula}
                     inputRef={formulaInputRef}
-                    onFormulaChange={setFormula}
+                    onFormulaChange={changeFormula}
                     onInsertOperator={insertOperator}
+                    onOpenValidation={() => setValidationOpen(true)}
+                    validation={formulaValidation}
                 />
 
                 <LanguageSection
@@ -506,9 +492,19 @@ function App() {
 
             {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
             {evidenceOpen && <EvidenceDialog onClose={() => setEvidenceOpen(false)} />}
+            {validationOpen && (
+                <ValidationDialog
+                    onClose={() => setValidationOpen(false)}
+                    validation={formulaValidation}
+                />
+            )}
             {toast && <Toast message={toast} />}
         </main>
     );
+}
+
+function treeShape(node: SyntaxNode): string {
+    return `${node.kind}:${node.label}:${node.substitutedFor ?? ""}(${node.children.map(treeShape).join(",")})`;
 }
 
 export default App;

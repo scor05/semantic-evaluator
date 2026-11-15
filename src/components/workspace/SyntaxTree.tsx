@@ -18,6 +18,8 @@ import "./syntax-tree.css";
 
 type SyntaxTreeProps = {
     tree: SyntaxNode | null;
+    errorNodeIds: string[];
+    stale: boolean;
     editMode: boolean;
     functionSymbols: string[];
     predicateSymbols: string[];
@@ -36,6 +38,8 @@ const quantifierSymbols = ["∀x", "∃x"];
 
 export function SyntaxTree({
     tree,
+    errorNodeIds,
+    stale,
     editMode,
     functionSymbols,
     predicateSymbols,
@@ -47,6 +51,7 @@ export function SyntaxTree({
     const rendererRef = useRef<SyntaxTreeRendererInstance | null>(null);
     const treeRef = useRef(tree);
     const interactionRef = useRef({ editMode, selectedNode });
+    const errorNodeIdsRef = useRef(errorNodeIds);
     const callbacksRef = useRef({ onSelectNode, onTreeChange });
     const editorRef = useRef<HTMLDivElement>(null);
     const skipRenameCommitRef = useRef(false);
@@ -57,6 +62,7 @@ export function SyntaxTree({
 
     treeRef.current = tree;
     interactionRef.current = { editMode, selectedNode };
+    errorNodeIdsRef.current = errorNodeIds;
     callbacksRef.current = { onSelectNode, onTreeChange };
 
     useEffect(() => {
@@ -82,6 +88,7 @@ export function SyntaxTree({
                     },
                 });
                 rendererRef.current = renderer;
+                renderer.setErrorNodes(errorNodeIdsRef.current);
                 if (treeRef.current) renderer.setTree(treeRef.current);
                 const interaction = interactionRef.current;
                 renderer.setInteraction(interaction.editMode, interaction.selectedNode);
@@ -109,6 +116,10 @@ export function SyntaxTree({
     useEffect(() => {
         rendererRef.current?.setInteraction(editMode, selectedNode);
     }, [editMode, selectedNode]);
+
+    useEffect(() => {
+        rendererRef.current?.setErrorNodes(errorNodeIds);
+    }, [errorNodeIds]);
 
     useEffect(() => {
         if (!pendingAddition) return;
@@ -166,8 +177,14 @@ export function SyntaxTree({
     };
 
     return (
-        <div className={`tree-scene ${editMode ? "is-editing" : ""}`}>
+        <div className={`tree-scene ${editMode ? "is-editing" : ""} ${stale ? "is-stale" : ""}`}>
             <div className="syntax-tree-viewport" ref={containerRef} />
+
+            {stale && tree && (
+                <div className="stale-tree-notice" role="status">
+                    La fórmula escrita no es válida · se muestra el último árbol construido
+                </div>
+            )}
 
             {!tree && (
                 <div className="empty-scene">

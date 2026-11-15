@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import "../../styles/shared-controls.css";
 import "./drawer-actions.css";
@@ -9,7 +9,6 @@ type ParameterDrawerProps = {
     children: ReactNode;
     onToggle: () => void;
     onClear: () => void;
-    onEvaluate: () => void;
 };
 
 export function ParameterDrawer({
@@ -17,7 +16,6 @@ export function ParameterDrawer({
     children,
     onToggle,
     onClear,
-    onEvaluate,
 }: ParameterDrawerProps) {
     return (
         <aside className={`parameter-drawer ${open ? "open" : "closed"}`}>

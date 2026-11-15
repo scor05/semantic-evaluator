@@ -1,5 +1,6 @@
 import type { DemonstrationResult, InterpretationError } from "../../types/logic";
-import type { SyntaxArityError, SyntaxNode } from "../../domain/syntaxTree";
+import type { SyntaxNode } from "../../domain/syntaxTree";
+import type { FormulaValidation } from "../../domain/validation";
 import { InteractionHint } from "./InteractionHint";
 import { ResultButton } from "./ResultButton";
 import { SyntaxTree } from "./SyntaxTree";
@@ -8,12 +9,13 @@ import "./workspace-controls.css";
 import "./workspace-shell.css";
 
 type WorkspaceProps = {
-    arityErrors: SyntaxArityError[];
     formula: string;
     tree: SyntaxNode | null;
+    treeIsStale: boolean;
+    errorNodeIds: string[];
+    validation: FormulaValidation;
     editMode: boolean;
     environmentMissing: boolean;
-    invalidDomainSymbols: string[];
     interpretationErrors: InterpretationError[];
     freeVariables: string[];
     functionSymbols: string[];
@@ -22,17 +24,19 @@ type WorkspaceProps = {
     result: DemonstrationResult;
     onOpenHelp: () => void;
     onOpenEvidence: () => void;
+    onOpenValidation: () => void;
     onSelectNode: (nodeId: string | null) => void;
     onTreeChange: (tree: SyntaxNode) => void;
 };
 
 export function Workspace({
-    arityErrors,
     formula,
     tree,
+    treeIsStale,
+    errorNodeIds,
+    validation,
     editMode,
     environmentMissing,
-    invalidDomainSymbols,
     interpretationErrors,
     freeVariables,
     functionSymbols,
@@ -41,6 +45,7 @@ export function Workspace({
     result,
     onOpenHelp,
     onOpenEvidence,
+    onOpenValidation,
     onSelectNode,
     onTreeChange,
 }: WorkspaceProps) {
@@ -49,29 +54,30 @@ export function Workspace({
             <WorkspaceHeader
                 formula={formula}
                 freeVariables={freeVariables}
-                invalidDomainSymbols={invalidDomainSymbols}
-                arityErrors={arityErrors}
                 interpretationErrors={interpretationErrors}
                 onOpenHelp={onOpenHelp}
+                onOpenValidation={onOpenValidation}
+                validation={validation}
             />
             <SyntaxTree
                 editMode={editMode}
+                errorNodeIds={errorNodeIds}
                 functionSymbols={functionSymbols}
                 onSelectNode={onSelectNode}
                 onTreeChange={onTreeChange}
                 predicateSymbols={predicateSymbols}
                 selectedNode={selectedNode}
+                stale={treeIsStale}
                 tree={tree}
             />
             <div className="workspace-bottom-bar">
                 <InteractionHint editMode={editMode} />
                 <ResultButton
-                    arityErrors={arityErrors}
                     environmentMissing={environmentMissing}
-                    invalidDomainSymbols={invalidDomainSymbols}
                     interpretationErrors={interpretationErrors}
                     onOpen={onOpenEvidence}
                     result={result}
+                    validation={validation}
                 />
             </div>
         </section>

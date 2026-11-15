@@ -63,6 +63,7 @@ export class SyntaxTreeRenderer {
     private rotationPointerId: number | null = null;
     private tree: SyntaxNode | null = null;
     private selectedNodeId: string | null = null;
+    private errorNodeIds = new Set<string>();
     private editMode = false;
     private mouseNavigationActive = false;
     private disposed = false;
@@ -114,6 +115,14 @@ export class SyntaxTreeRenderer {
         this.tree = null;
         this.selectedNodeId = null;
         this.clearDynamicScene();
+    }
+
+    setErrorNodes(nodeIds: string[]): void {
+        const next = new Set(nodeIds);
+        const changed = next.size !== this.errorNodeIds.size
+            || [...next].some((nodeId) => !this.errorNodeIds.has(nodeId));
+        this.errorNodeIds = next;
+        if (changed && this.tree) this.rebuildScene();
     }
 
     setInteraction(editMode: boolean, selectedNodeId: string | null): void {
@@ -201,10 +210,13 @@ export class SyntaxTreeRenderer {
 
     private addNode(node: SyntaxNode, position: THREE.Vector3, isFreeVariable: boolean): void {
         const selected = this.editMode && node.id === this.selectedNodeId;
-        const text = this.createText(node.label, 0.72, nodeColors[node.kind]);
+        const hasError = this.errorNodeIds.has(node.id);
+        const text = this.createText(node.label, 0.72, hasError ? 0xffb3b1 : nodeColors[node.kind]);
         text.position.copy(position);
-        text.outlineWidth = selected ? "9%" : isFreeVariable ? "7%" : "3%";
-        text.outlineColor = selected ? 0x2a9c78 : isFreeVariable ? 0xf1a94b : 0x07100d;
+        text.outlineWidth = selected ? "9%" : hasError ? "8%" : isFreeVariable ? "7%" : "3%";
+        text.outlineColor = selected
+            ? 0x2a9c78
+            : hasError ? 0xc8403d : isFreeVariable ? 0xf1a94b : 0x07100d;
         text.renderOrder = 10;
         this.dynamicRoot.add(text);
         this.labels.push(text);

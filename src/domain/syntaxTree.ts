@@ -49,7 +49,7 @@ export function classifySyntaxSymbol(
     if (new Set(language.predicates ?? []).has(symbol)) return "predicate";
     if (new Set(language.functions ?? []).has(symbol)) return "function";
     if (["¬", "∧", "∨", "→", "↔", "=", "φ"].includes(symbol)) return "logical";
-    if (/^[∀∃][w-z]$/u.test(symbol)) return "logical";
+    if (/^[∀∃]/u.test(symbol) && isVariableLabel(symbol.slice(1))) return "logical";
     return null;
 }
 
@@ -374,6 +374,7 @@ export function wrapSyntaxNode(
 export function inferSyntaxNodeKind(label: string): SyntaxNodeKind {
     if (/^[∀∃]/u.test(label)) return "quantifier";
     if (["¬", "∧", "∨", "→", "↔"].includes(label)) return "connective";
+    if (isVariableLabel(label)) return "term";
     if (/^[A-Z]/u.test(label)) return "predicate";
     if (/^[a-z][A-Za-z0-9_]*$/u.test(label) && label.length > 1) return "function";
     return "term";
@@ -513,7 +514,7 @@ function getQuantifiedVariable(node: SyntaxNode): string | null {
 }
 
 export function isVariableLabel(label: string): boolean {
-    return /^[w-z]$/u.test(label);
+    return /^[w-z](?:[0-9]+|[₀-₉]+)?$/u.test(label);
 }
 
 export function removeSyntaxNode(root: SyntaxNode, nodeId: string): SyntaxNode {

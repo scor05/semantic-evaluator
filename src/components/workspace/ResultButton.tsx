@@ -1,34 +1,35 @@
 import { Check, X } from "lucide-react";
-import type { SyntaxArityError } from "../../domain/syntaxTree";
+import {
+    firstError,
+    getValidationState,
+    type FormulaValidation,
+} from "../../domain/validation";
 import type { DemonstrationResult, InterpretationError } from "../../types/logic";
 import "./workspace-controls.css";
 
 type ResultButtonProps = {
-    arityErrors: SyntaxArityError[];
     result: DemonstrationResult;
     environmentMissing: boolean;
-    invalidDomainSymbols: string[];
     interpretationErrors: InterpretationError[];
+    validation: FormulaValidation;
     onOpen: () => void;
 };
 
 export function ResultButton({
-    arityErrors,
     result,
     environmentMissing,
-    invalidDomainSymbols,
     interpretationErrors,
+    validation,
     onOpen,
 }: ResultButtonProps) {
-    const hasDomainWarning = invalidDomainSymbols.length > 0;
-    const hasArityWarning = arityErrors.length > 0;
+    const validationState = getValidationState(validation);
+    const formulaError = validationState === "invalid" ? firstError(validation) : undefined;
+    const formulaEmpty = validationState === "empty";
+    const missingEnvironment = environmentMissing || validationState === "incomplete";
     const hasInterpretationWarning = interpretationErrors.length > 0;
-    const hasWarning = hasDomainWarning
-        || hasArityWarning
+    const hasWarning = Boolean(formulaError)
         || hasInterpretationWarning
-        || environmentMissing;
-    const firstArityError = arityErrors[0];
-    const additionalArityErrors = Math.max(0, arityErrors.length - 1);
+        || missingEnvironment;
     const missingInterpretations = interpretationErrors.map(({ symbol }) => symbol);
     const hasInvalidInterpretation = interpretationErrors.some(
         ({ reason }) => reason === "invalid",
@@ -36,14 +37,12 @@ export function ResultButton({
     const state = hasWarning
         ? "warning"
         : result === null ? "neutral" : result ? "true" : "false";
-    const label = hasDomainWarning
-        ? `Fuera del dominio: ${invalidDomainSymbols.join(", ")}`
-        : firstArityError
-            ? `Aridad inválida: ${firstArityError.symbol} (${firstArityError.actual}/${firstArityError.expected})${additionalArityErrors ? ` +${additionalArityErrors}` : ""}`
+    const label = formulaError
+        ? `Fórmula inválida: ${formulaError.title}`
         : hasInterpretationWarning
             ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"}: ${missingInterpretations.join(", ")}`
-        : environmentMissing ? "Entorno faltante"
-        : result === null ? "Sin evaluar" : result ? "Verdadero" : "Falso";
+            : missingEnvironment ? "Entorno faltante"
+                : formulaEmpty || result === null ? "Sin evaluar" : result ? "Verdadero" : "Falso";
 
     return (
         <div className="evidence-button-slot">
@@ -66,7 +65,7 @@ export function ResultButton({
                 </span>
                 <span className="result-copy">
                     <small>Resultado de demostración</small>
-                    {label}
+                    <span className="result-label" title={label}>{label}</span>
                 </span>
             </button>
         </div>

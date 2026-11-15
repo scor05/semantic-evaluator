@@ -1,35 +1,39 @@
 import { CircleHelp } from "lucide-react";
-import type { SyntaxArityError } from "../../domain/syntaxTree";
+import {
+    firstError,
+    getValidationState,
+    type FormulaValidation,
+} from "../../domain/validation";
 import type { InterpretationError } from "../../types/logic";
 import { SpotifyDialog } from "../dialogs/SpotifyDialog.tsx";
 import "../../styles/shared-controls.css";
+import "../validation/validation.css";
 import "./workspace-shell.css";
 
 type WorkspaceHeaderProps = {
-    arityErrors: SyntaxArityError[];
     formula: string;
     freeVariables: string[];
-    invalidDomainSymbols: string[];
     interpretationErrors: InterpretationError[];
+    validation: FormulaValidation;
     onOpenHelp: () => void;
+    onOpenValidation: () => void;
 };
 
 export function WorkspaceHeader({
-    arityErrors,
     formula,
     freeVariables,
-    invalidDomainSymbols,
     interpretationErrors,
+    validation,
     onOpenHelp,
+    onOpenValidation,
 }: WorkspaceHeaderProps) {
     const isOpen = freeVariables.length > 0;
-    const hasInvalidSymbol = invalidDomainSymbols.length > 0;
-    const firstArityError = arityErrors[0];
+    const formulaError = getValidationState(validation) === "invalid" ? firstError(validation) : undefined;
     const hasInterpretationError = interpretationErrors.length > 0;
     const hasInvalidInterpretation = interpretationErrors.some(
         ({ reason }) => reason === "invalid",
     );
-    const hasFormulaError = hasInvalidSymbol || Boolean(firstArityError) || hasInterpretationError;
+    const hasFormulaError = Boolean(formulaError) || hasInterpretationError;
     const status = hasFormulaError ? "invalid" : isOpen ? "open" : "closed";
 
     return (
@@ -37,18 +41,24 @@ export function WorkspaceHeader({
             <div className="scene-title">
                 <span className="eyebrow">Árbol sintáctico</span>
                 <h1>{formula || "Tu fórmula aparecerá aquí"}</h1>
-                {formula && (
+                {formula && formulaError && (
+                    <button
+                        className="formula-status formula-status-button is-invalid"
+                        onClick={onOpenValidation}
+                        type="button"
+                    >
+                        <span className="status-dot" />
+                        {`Fórmula inválida · ${formulaError.title}`}
+                    </button>
+                )}
+                {formula && !formulaError && (
                     <p className={`formula-status is-${status}`}>
                         <span className="status-dot" />
-                        {hasInvalidSymbol
-                            ? `Símbolo no reconocido · ${invalidDomainSymbols.join(", ")}`
-                            : firstArityError
-                                ? `Aridad inválida · ${firstArityError.symbol} tiene ${firstArityError.actual} de ${firstArityError.expected} argumentos`
-                                : hasInterpretationError
-                                    ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"} · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
-                                    : isOpen
-                                        ? `Fórmula abierta · ${freeVariables.join(", ")} ${freeVariables.length === 1 ? "libre" : "libres"}`
-                                        : "Fórmula cerrada"}
+                        {hasInterpretationError
+                            ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"} · ${interpretationErrors.map(({ symbol }) => symbol).join(", ")}`
+                            : isOpen
+                                ? `Fórmula abierta · ${freeVariables.join(", ")} ${freeVariables.length === 1 ? "libre" : "libres"}`
+                                : "Fórmula cerrada"}
                     </p>
                 )}
             </div>
