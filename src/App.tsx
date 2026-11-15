@@ -29,13 +29,18 @@ import {
     type SyntaxNode,
 } from "./domain/syntaxTree";
 import {
+    buildInterpretation,
+    EvaluationError,
+    evaluateFormula,
+    type EvaluationResult,
+} from "./domain/evaluation";
+import {
     getValidationState,
     validateFormulaText,
     validateSyntaxTree,
     type LanguageSignature,
 } from "./domain/validation";
 import type {
-    DemonstrationResult,
     FunctionDefinition,
     PredicateDefinition,
 } from "./types/logic";
@@ -71,8 +76,6 @@ function App() {
     const [helpOpen, setHelpOpen] = useState(false);
     const [evidenceOpen, setEvidenceOpen] = useState(false);
     const [validationOpen, setValidationOpen] = useState(false);
-    const [demonstrationResult, setDemonstrationResult] =
-        useState<DemonstrationResult>(null);
     const [toast, setToast] = useState<string | null>(null);
     const formulaInputRef = useRef<HTMLInputElement>(null);
     const editModeLockedRef = useRef(false);
@@ -157,6 +160,26 @@ function App() {
         });
     }, [domain, functionOutputs, functions, predicateTuples, predicates]);
 
+    const interpretation = useMemo(
+        () => buildInterpretation({ domain, functions, predicates, functionOutputs, predicateTuples }),
+        [domain, functionOutputs, functions, predicateTuples, predicates],
+    );
+    const { evaluation, evaluationError } = useMemo((): {
+        evaluation: EvaluationResult | null;
+        evaluationError: string | null;
+    } => {
+        const tree = formulaValidation.tree;
+        if (!tree || validationState !== "valid" || interpretationErrors.length > 0) {
+            return { evaluation: null, evaluationError: null };
+        }
+        try {
+            return { evaluation: evaluateFormula(tree, interpretation, environmentValues), evaluationError: null };
+        } catch (error) {
+            if (error instanceof EvaluationError) return { evaluation: null, evaluationError: error.message };
+            throw error;
+        }
+    }, [environmentValues, formulaValidation, interpretation, interpretationErrors, validationState]);
+
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Control") setControlEditMode(true);
@@ -196,7 +219,6 @@ function App() {
         setEnvironmentValues({});
         setSelectedNode(null);
         setEditModeLock(false);
-        setDemonstrationResult(null);
     }, [textValidation]);
 
     useEffect(() => {
@@ -288,7 +310,6 @@ function App() {
         setSyntaxTree(tree);
         setFormula(nextFormula);
         setRenderedFormula(nextFormula);
-        setDemonstrationResult(null);
     };
 
     const updateTree = (tree: SyntaxNode) => {
@@ -379,14 +400,16 @@ function App() {
                 freeVariables={formulaValidation.freeVariables}
                 functionSymbols={functionSymbols}
                 onOpenEvidence={() =>
-                    validationState === "valid" ? setEvidenceOpen(true) : setValidationOpen(true)
+                    validationState === "valid" || validationState === "empty"
+                        ? setEvidenceOpen(true)
+                        : setValidationOpen(true)
                 }
                 onOpenHelp={() => setHelpOpen(true)}
                 onOpenValidation={() => setValidationOpen(true)}
                 onSelectNode={selectNode}
                 onTreeChange={updateTree}
                 predicateSymbols={predicateSymbols}
-                result={demonstrationResult}
+                result={evaluation ? evaluation.value : null}
                 selectedNode={selectedNode}
                 tree={syntaxTree}
                 treeIsStale={treeIsStale}
@@ -402,7 +425,6 @@ function App() {
                     setSelectedNode(null);
                     setEditModeLock(false);
                     setEnvironmentValues({});
-                    setDemonstrationResult(null);
                 }}
                 onToggle={() => setDrawerOpen((current) => !current)}
                 open={drawerOpen}
@@ -491,7 +513,19 @@ function App() {
             </ParameterDrawer>
 
             {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
-            {evidenceOpen && <EvidenceDialog onClose={() => setEvidenceOpen(false)} />}
+            {evidenceOpen && (
+                <EvidenceDialog
+                    evaluation={evaluation}
+                    evaluationError={evaluationError}
+                    formulaInvalid={validationState !== "valid"}
+                    interpretationErrors={interpretationErrors}
+                    onClose={() => setEvidenceOpen(false)}
+                    onOpenValidation={() => {
+                        setEvidenceOpen(false);
+                        setValidationOpen(true);
+                    }}
+                />
+            )}
             {validationOpen && (
                 <ValidationDialog
                     onClose={() => setValidationOpen(false)}

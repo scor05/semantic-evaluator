@@ -38,7 +38,7 @@ export function getInterpretationErrors({
 
     const predicateErrors = predicates.flatMap((predicate) => {
         const name = predicate.name.trim();
-        const hasInterpretation = Object.prototype.hasOwnProperty.call(predicateTuples, name);
+        const hasInterpretation = (predicateTuples[name] ?? []).length > 0;
         const invalidTupleCount = (predicateTuples[name] ?? []).filter(
             (tuple) => !isValidPredicateTuple(tuple, predicate.arity, domain),
         ).length;
