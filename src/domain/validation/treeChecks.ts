@@ -232,16 +232,18 @@ export function checkTree(
                 return;
             }
             case "domain": {
-                report(node, "symbols", {
-                    code: "symbols-domain-element",
-                    title: `${quote(node.label)} es un elemento del dominio, no un término del lenguaje`,
-                    reasoning: [
-                        "Los términos son variables, constantes y aplicaciones de símbolos funcionales; los elementos de D pertenecen a la interpretación, no a la sintaxis.",
-                        "Por eso no se escribe φ[a/x] con a ∈ D: es el entorno el que conecta cada variable con un elemento del dominio.",
-                    ],
-                    rule: formationRules.alphabet,
-                    hint: `Usa una variable libre (p. ej. x) y asígnale ${node.label} en el Entorno, o declara una constante c con cᴵ = ${node.label}.`,
-                });
+                if (node.children.length > 0) {
+                    report(node, "arity", {
+                        code: "arity-domain-literal",
+                        title: `El literal ${quote(node.label)} no lleva argumentos`,
+                        reasoning: [
+                            `${quote(node.label)} nombra directamente al elemento ${node.label} de D.`,
+                            "Los literales del dominio son términos simples; solo los símbolos funcionales pueden aplicarse a argumentos.",
+                        ],
+                        rule: formationRules.literalTerm,
+                        hint: "Elimina los hijos del literal o usa un símbolo funcional declarado.",
+                    });
+                }
                 checkChildren(node, "term");
                 return;
             }
@@ -415,7 +417,11 @@ export function analyzeVariables(
         });
     }
 
-    const freeVariables = [...new Set(occurrences.filter(({ bound }) => !bound).map(({ name }) => name))];
+    const freeVariables = [...new Set(
+        occurrences
+            .filter(({ bound, assignedValue }) => !bound && !assignedValue)
+            .map(({ name }) => name),
+    )];
     return { occurrences, freeVariables, diagnostics };
 }
 
@@ -452,6 +458,7 @@ function naturalCategory(nodeClass: NodeClass): Category | null {
             return nodeClass.entry.category === "predicate" ? "formula" : "term";
         case "variable":
         case "assigned":
+        case "domain":
             return "term";
         default:
             return null;
@@ -461,6 +468,7 @@ function naturalCategory(nodeClass: NodeClass): Category | null {
 function termNature(node: SyntaxNode, nodeClass: NodeClass): string {
     if (nodeClass.type === "variable") return "es una variable individual";
     if (nodeClass.type === "assigned") return `es el valor que el entorno asigna a ${nodeClass.variable}`;
+    if (nodeClass.type === "domain") return `es el literal del elemento ${node.label} de D`;
     if (nodeClass.type === "symbol" && nodeClass.entry.arity === 0) return "es una constante";
     if (nodeClass.type === "symbol") return `es la aplicación del símbolo funcional ${node.label}`;
     return "es un término";

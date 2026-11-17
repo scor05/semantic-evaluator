@@ -71,7 +71,7 @@
 .evidence-modal h2,
 .help-modal h2 {
   margin: 7px 0 8px;
-  font-family: var(--font-secondary-title);
+  font-family: var(--font-tertiary-title);
   font-size: var(--size-secondary-title);
   font-weight: 400;
 }

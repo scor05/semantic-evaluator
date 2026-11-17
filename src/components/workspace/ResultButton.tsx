@@ -23,7 +23,13 @@ export function ResultButton({
     onOpen,
 }: ResultButtonProps) {
     const validationState = getValidationState(validation);
-    const formulaError = validationState === "invalid" ? firstError(validation) : undefined;
+    const firstValidationError = validationState === "invalid" || validationState === "incomplete"
+        ? firstError(validation)
+        : undefined;
+    const formulaError = validationState === "invalid" ? firstValidationError : undefined;
+    const unrecognizedValue = firstValidationError?.code === "environment-value-outside-domain"
+        ? firstValidationError
+        : undefined;
     const formulaEmpty = validationState === "empty";
     const missingEnvironment = environmentMissing || validationState === "incomplete";
     const hasInterpretationWarning = interpretationErrors.length > 0;
@@ -39,6 +45,8 @@ export function ResultButton({
         : result === null ? "neutral" : result ? "true" : "false";
     const label = formulaError
         ? `Fórmula inválida: ${formulaError.title}`
+        : unrecognizedValue
+            ? `Símbolo no reconocido: ${unrecognizedValue.title}`
         : hasInterpretationWarning
             ? `${hasInvalidInterpretation ? "Interpretación inválida" : "Interpretación faltante"}: ${missingInterpretations.join(", ")}`
             : missingEnvironment ? "Entorno faltante"

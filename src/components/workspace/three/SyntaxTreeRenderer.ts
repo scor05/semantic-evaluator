@@ -8,7 +8,7 @@ import {
     type SyntaxNodeKind,
 } from "../../../domain/syntaxTree";
 
-export type TreeEditAction = "wrap" | "add-child" | "remove";
+export type TreeEditAction = "wrap" | "add-child" | "remove" | "trace";
 
 type RendererCallbacks = {
     onSelectNode: (nodeId: string | null) => void;
@@ -28,6 +28,11 @@ const nodeColors: Record<SyntaxNodeKind, number> = {
     value: 0xf0c674,
     term: 0xf0f7f5,
 };
+
+const trueNodeColor = 0x91e68f;
+const falseNodeColor = 0xff7b78;
+const incompleteNodeColor = 0xf1a94b;
+const editNodeColor = 0x71c9ff;
 
 const cameraControlCodes = new Set([
     "ArrowUp",
@@ -64,6 +69,8 @@ export class SyntaxTreeRenderer {
     private tree: SyntaxNode | null = null;
     private selectedNodeId: string | null = null;
     private errorNodeIds = new Set<string>();
+    private incompleteNodeIds = new Set<string>();
+    private nodeTruthValues = new Map<string, boolean>();
     private editMode = false;
     private mouseNavigationActive = false;
     private disposed = false;
@@ -125,6 +132,22 @@ export class SyntaxTreeRenderer {
         if (changed && this.tree) this.rebuildScene();
     }
 
+    setIncompleteNodes(nodeIds: string[]): void {
+        const next = new Set(nodeIds);
+        const changed = next.size !== this.incompleteNodeIds.size
+            || [...next].some((nodeId) => !this.incompleteNodeIds.has(nodeId));
+        this.incompleteNodeIds = next;
+        if (changed && this.tree) this.rebuildScene();
+    }
+
+    setNodeTruthValues(values: Record<string, boolean>): void {
+        const next = new Map(Object.entries(values));
+        const changed = next.size !== this.nodeTruthValues.size
+            || [...next].some(([nodeId, value]) => this.nodeTruthValues.get(nodeId) !== value);
+        this.nodeTruthValues = next;
+        if (changed && this.tree) this.rebuildScene();
+    }
+
     setInteraction(editMode: boolean, selectedNodeId: string | null): void {
         const changed = this.editMode !== editMode || this.selectedNodeId !== selectedNodeId;
         this.editMode = editMode;
@@ -173,7 +196,13 @@ export class SyntaxTreeRenderer {
 
         if (this.editMode && this.selectedNodeId) {
             const selected = positions.get(this.selectedNodeId);
-            if (selected) this.addEditHandles(selected.position, selected.node.id);
+            if (selected) {
+                this.addEditHandles(
+                    selected.position,
+                    selected.node.id,
+                    freeVariableNodeIds.has(selected.node.id),
+                );
+            }
         }
 
         if (!this.hasFramedTree) {
@@ -211,12 +240,36 @@ export class SyntaxTreeRenderer {
     private addNode(node: SyntaxNode, position: THREE.Vector3, isFreeVariable: boolean): void {
         const selected = this.editMode && node.id === this.selectedNodeId;
         const hasError = this.errorNodeIds.has(node.id);
-        const text = this.createText(node.label, 0.72, hasError ? 0xffb3b1 : nodeColors[node.kind]);
+        const truthValue = this.nodeTruthValues.get(node.id);
+        const hasTruthValue = truthValue !== undefined;
+        const emphasized = selected || hasError || hasTruthValue || isFreeVariable;
+        const statusColor = hasError
+            ? incompleteNodeColor
+            : truthValue === true
+                ? trueNodeColor
+                : truthValue === false
+                    ? falseNodeColor
+                    : isFreeVariable
+                        ? incompleteNodeColor
+                        : selected
+                            ? editNodeColor
+                            : 0x07100d;
+        const text = this.createText(
+            node.label,
+            0.72,
+            emphasized ? 0x050908 : nodeColors[node.kind],
+        );
         text.position.copy(position);
-        text.outlineWidth = selected ? "9%" : hasError ? "8%" : isFreeVariable ? "7%" : "3%";
-        text.outlineColor = selected
-            ? 0x2a9c78
-            : hasError ? 0xc8403d : isFreeVariable ? 0xf1a94b : 0x07100d;
+        const hasStatus = hasError || hasTruthValue || isFreeVariable;
+        text.outlineWidth = selected
+            ? hasStatus ? "13%" : "10%"
+            : hasError || hasTruthValue
+                ? "8%"
+                : isFreeVariable
+                    ? "7%"
+                    : "3%";
+        text.outlineColor = statusColor;
+        (text as Text & { outlineBlur: number | string }).outlineBlur = selected && hasStatus ? "10%" : 0;
         text.renderOrder = 10;
         this.dynamicRoot.add(text);
         this.labels.push(text);
@@ -272,10 +325,30 @@ export class SyntaxTreeRenderer {
         return Math.max(0.64, 0.35 + [...node.label].length * 0.22);
     }
 
-    private addEditHandles(position: THREE.Vector3, nodeId: string): void {
-        this.addHandle(position.clone().add(new THREE.Vector3(0, 1.05, 0)), nodeId, "wrap", "+", false);
-        this.addHandle(position.clone().add(new THREE.Vector3(0, -1.05, 0)), nodeId, "add-child", "+", false);
-        this.addHandle(position.clone().add(new THREE.Vector3(1.05, 0, 0)), nodeId, "remove", "−", true);
+    private addEditHandles(position: THREE.Vector3, nodeId: string, isFreeVariable: boolean): void {
+        this.addHandle(position.clone().add(new THREE.Vector3(0, 1.05, 0)), nodeId, "wrap", "+", 0x79e3bc, 0x082016);
+        this.addHandle(position.clone().add(new THREE.Vector3(0, -1.05, 0)), nodeId, "add-child", "+", 0x79e3bc, 0x082016);
+        this.addHandle(position.clone().add(new THREE.Vector3(1.05, 0, 0)), nodeId, "remove", "−", 0xff7b78, 0x2d0908);
+        const truthValue = this.nodeTruthValues.get(nodeId);
+        if (truthValue !== undefined) {
+            this.addHandle(
+                position.clone().add(new THREE.Vector3(-1.05, 0, 0)),
+                nodeId,
+                "trace",
+                truthValue ? "✓" : "!",
+                truthValue ? trueNodeColor : falseNodeColor,
+                truthValue ? 0x082016 : 0x2d0908,
+            );
+        } else if (this.incompleteNodeIds.has(nodeId) || isFreeVariable) {
+            this.addHandle(
+                position.clone().add(new THREE.Vector3(-1.05, 0, 0)),
+                nodeId,
+                "trace",
+                "?",
+                incompleteNodeColor,
+                0x301b05,
+            );
+        }
     }
 
     private addHandle(
@@ -283,18 +356,19 @@ export class SyntaxTreeRenderer {
         nodeId: string,
         action: TreeEditAction,
         label: string,
-        danger: boolean,
+        backgroundColor: number,
+        foregroundColor: number,
     ): void {
         const mesh = new THREE.Mesh(
             new THREE.SphereGeometry(0.24, 20, 14),
-            new THREE.MeshBasicMaterial({ color: danger ? 0xff7b78 : 0x79e3bc }),
+            new THREE.MeshBasicMaterial({ color: backgroundColor }),
         );
         mesh.position.copy(position);
         mesh.userData = { interaction: "handle", nodeId, action };
         this.dynamicRoot.add(mesh);
         this.interactiveMeshes.push(mesh);
 
-        const text = this.createText(label, 0.34, danger ? 0x2d0908 : 0x082016, true);
+        const text = this.createText(label, 0.34, foregroundColor, true);
         text.position.copy(position);
         text.renderOrder = 12;
         this.dynamicRoot.add(text);

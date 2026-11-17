@@ -5,8 +5,8 @@ import {
     validateSyntaxTree,
     type FormulaValidation,
     type LanguageSignature,
-} from "../src/domain/validation";
-import { createSyntaxNode, type SyntaxNode } from "../src/domain/syntaxTree";
+} from "../domain/validation";
+import { createSyntaxNode, type SyntaxNode } from "../domain/syntaxTree";
 
 const classLanguage: LanguageSignature = {
     functions: [
@@ -158,8 +158,10 @@ describe("símbolos", () => {
         expect(firstError(result)?.hint).toContain("“P”");
     });
 
-    test("un elemento del dominio no es un término", () => {
-        expect(codes(text("P(a)"))).toEqual(["symbols-domain-element"]);
+    test("un elemento del dominio se admite como término literal", () => {
+        const result = text("P(a)");
+        expect(codes(result)).toEqual([]);
+        expect(result.freeVariables).toEqual([]);
     });
 
     test("variables con subíndice", () => {
@@ -267,11 +269,14 @@ describe("validación de árboles editados", () => {
         ]);
     });
 
-    test("valor asignado válido cuenta como variable libre con entorno", () => {
+    test("sustituir una variable libre por un valor cierra esa aparición", () => {
         const value = { ...node("a", "value"), substitutedFor: "x" };
         const result = validateSyntaxTree(node("P", "predicate", [value]), classLanguage, { x: "a" });
         expect(result.ok).toBe(true);
-        expect(result.freeVariables).toEqual(["x"]);
+        expect(result.freeVariables).toEqual([]);
+        expect(result.occurrences).toEqual([
+            expect.objectContaining({ name: "x", bound: false, assignedValue: "a" }),
+        ]);
     });
 
     test("marcador φ pendiente", () => {

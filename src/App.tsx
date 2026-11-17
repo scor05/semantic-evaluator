@@ -78,6 +78,7 @@ function App() {
     const [validationOpen, setValidationOpen] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
     const formulaInputRef = useRef<HTMLInputElement>(null);
+    const drawerContentRef = useRef<HTMLDivElement>(null);
     const editModeLockedRef = useRef(false);
     const nextId = useRef(10);
     const editMode = controlEditMode || editModeLocked;
@@ -125,8 +126,20 @@ function App() {
     const errorNodeIds = useMemo(
         () => treeIsStale
             ? []
+            : formulaValidation.diagnostics.flatMap(({ code, nodeId, severity, stage }) =>
+                nodeId
+                && severity === "error"
+                && (stage !== "environment" || code === "environment-value-outside-domain")
+                    ? [nodeId]
+                    : []
+            ),
+        [formulaValidation, treeIsStale],
+    );
+    const environmentErrorNodeIds = useMemo(
+        () => treeIsStale
+            ? []
             : formulaValidation.diagnostics.flatMap(({ nodeId, severity, stage }) =>
-                nodeId && severity === "error" && stage !== "environment" ? [nodeId] : []
+                nodeId && severity === "error" && stage === "environment" ? [nodeId] : []
             ),
         [formulaValidation, treeIsStale],
     );
@@ -389,11 +402,24 @@ function App() {
         commitTree(substituteFreeVariable(syntaxTree, variable, value));
     };
 
+    const revealEnvironment = () => {
+        setDrawerOpen(true);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const content = drawerContentRef.current;
+                if (!content) return;
+                content.scrollTo({ top: content.scrollHeight, behavior: "smooth" });
+            });
+        });
+    };
+
     return (
         <main className={`app-shell ${drawerOpen ? "drawer-is-open" : ""}`}>
             <Workspace
                 editMode={editMode}
                 errorNodeIds={errorNodeIds}
+                environmentErrorNodeIds={environmentErrorNodeIds}
+                evaluation={evaluation}
                 interpretationErrors={interpretationErrors}
                 environmentMissing={environmentMissing}
                 formula={formulaOrigin === "text" && !textValidation?.tree ? formula : renderedFormula}
@@ -406,6 +432,7 @@ function App() {
                 }
                 onOpenHelp={() => setHelpOpen(true)}
                 onOpenValidation={() => setValidationOpen(true)}
+                onRequestEnvironment={revealEnvironment}
                 onSelectNode={selectNode}
                 onTreeChange={updateTree}
                 predicateSymbols={predicateSymbols}
@@ -417,6 +444,7 @@ function App() {
             />
 
             <ParameterDrawer
+                contentRef={drawerContentRef}
                 onClear={() => {
                     setFormula("");
                     setFormulaOrigin("text");

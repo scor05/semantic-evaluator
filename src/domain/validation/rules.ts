@@ -4,8 +4,9 @@ export const binaryConnectives = ["∧", "∨", "→"] as const;
 export const formationRules = {
     variableTerm: "Toda variable individual es un término.",
     constantTerm: "Toda constante individual (símbolo funcional 0-ario) es un término.",
+    literalTerm: "En esta aplicación, cada elemento escrito de D también se admite como término literal y se denota a sí mismo.",
     functionTerm:
-        "Si f es un símbolo funcional n-ario y t₁, …, tₙ son términos, entonces f(t₁, …, tₙ) es un término. Nada más es término.",
+        "Si f es un símbolo funcional n-ario y t₁, …, tₙ son términos, entonces f(t₁, …, tₙ) es un término.",
     predicateAtom:
         "Si P es un predicado n-ario y t₁, …, tₙ son términos, entonces P(t₁, …, tₙ) es una fórmula atómica.",
     equalityAtom: "Si t₁ y t₂ son términos, entonces t₁ = t₂ es una fórmula atómica.",
@@ -15,7 +16,7 @@ export const formationRules = {
         "Si φ es una fórmula y x es una variable, entonces ∀x φ y ∃x φ son fórmulas. Los cuantificadores solo se aplican a variables individuales.",
     closure: "Solo son fórmulas las expresiones obtenidas con las reglas atómicas y recursivas.",
     alphabet:
-        "Los símbolos lógicos son: variables, ¬, ∧, ∨, →, ∀, ∃, =, ( y ). Los no lógicos (funciones y predicados) deben declararse en el lenguaje.",
+        "Los símbolos lógicos son: variables, ¬, ∧, ∨, →, ∀, ∃, =, ( y ). Los no lógicos (funciones y predicados) deben declararse en el lenguaje; los elementos escritos de D se admiten como literales.",
     variables:
         "Las variables individuales se escriben w, x, y, z, opcionalmente con subíndice (x₁, y2, …).",
     scope:

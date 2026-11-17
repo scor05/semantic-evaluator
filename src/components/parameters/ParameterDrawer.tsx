@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import "../../styles/shared-controls.css";
 import "./drawer-actions.css";
 import "./parameter-drawer.css";
@@ -9,6 +9,7 @@ type ParameterDrawerProps = {
     children: ReactNode;
     onToggle: () => void;
     onClear: () => void;
+    contentRef?: RefObject<HTMLDivElement | null>;
 };
 
 export function ParameterDrawer({
@@ -16,6 +17,7 @@ export function ParameterDrawer({
     children,
     onToggle,
     onClear,
+    contentRef,
 }: ParameterDrawerProps) {
     return (
         <aside className={`parameter-drawer ${open ? "open" : "closed"}`}>
@@ -28,7 +30,7 @@ export function ParameterDrawer({
                 {open ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             </button>
 
-            <div className="drawer-content">
+            <div className="drawer-content" ref={contentRef}>
                 <header className="drawer-header">
                     <div>
                         <span className="eyebrow">Parámetros</span>

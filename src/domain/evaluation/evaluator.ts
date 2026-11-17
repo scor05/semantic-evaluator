@@ -292,6 +292,10 @@ class Evaluator {
             return value;
         }
 
+        if (this.interpretation.domain.includes(node.label)) {
+            return node.label;
+        }
+
         throw new EvaluationError(`${node.label} no es un término del lenguaje.`);
     }
 

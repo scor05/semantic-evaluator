@@ -1,24 +1,31 @@
 # Semantic Evaluator
 
-Interfaz del evaluador semántico para fórmulas de lógica de primer orden.
+En este repositorio está nuestra implementación de una aplicación con una interfaz gráfica para evaluar fórmulas de lenguajes de primer orden con interpretaciones dadas, la cual utiliza un árbol 3D hecho con billboards para representar/editar la fórmula y a la vez mostrar sus valores de verdad dentro de él.
 
-## Desarrollo
+## Integrantes del grupo
+
+Los integrantes del grupo somos:
+
+- Santiago Cordero (Carnet 24472)
+- Diego González (Carnet )
+- Jorge Morales (Carnet )
+
+Y la sección del curso en la que estamos es la 10.
+
+## Estructura del código
+
+El código está estructurado de la siguiente manera con respecto a la raíz del repositorio:
+
+```bash
+
+```
+
+## Ejecución del código
+
+El código está estructurado con bun como manejador de paquetes, utilizando vite para servir la aplicación HTML y Typescript/React/ThreeJS como dependencias. Para ejecutar la aplicación localmente solo es necesario ejecutar los siguientes comandos y automáticamente se servirá en `http://localhost:3000`:
 
 ```bash
 bun install
 bun run dev
 ```
-
-La aplicación se sirve con Vite. Para comprobar tipos y generar una compilación de
-producción:
-
-```bash
-bun run typecheck
-bun run build
-```
-
-## Estado actual
-
-La interfaz incluye la configuración del lenguaje, interpretación, fórmula y entorno,
-además de una maqueta interactiva del árbol y sus evidencias. El parser, la evaluación
-semántica y el renderizado 3D todavía no están conectados.
+También se puede ejecutar la aplicación sin descargar bun al abrir el `index.html` dentro de `./dist/index.html`, el cual contiene el mismo código ya precompilado por vite.

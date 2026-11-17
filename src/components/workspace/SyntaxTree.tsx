@@ -1,5 +1,11 @@
 import { Plus, Trash2, WrapText } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+    indexRelevantEvaluationTraces,
+    isLogicalOperatorTrace,
+    type EvaluationResult,
+    type EvaluationTrace,
+} from "../../domain/evaluation";
 import {
     addSyntaxChild,
     findSyntaxNode,
@@ -14,22 +20,26 @@ import type {
     SyntaxTreeRenderer as SyntaxTreeRendererInstance,
     TreeEditAction,
 } from "./three/SyntaxTreeRenderer";
+import { NodeTraceDialog } from "../evaluation/NodeTraceDialog";
 import "./syntax-tree.css";
 
 type SyntaxTreeProps = {
     tree: SyntaxNode | null;
     errorNodeIds: string[];
+    environmentErrorNodeIds: string[];
+    evaluation: EvaluationResult | null;
     stale: boolean;
     editMode: boolean;
     functionSymbols: string[];
     predicateSymbols: string[];
     selectedNode: string | null;
     onSelectNode: (nodeId: string | null) => void;
+    onRequestEnvironment: () => void;
     onTreeChange: (tree: SyntaxNode) => void;
 };
 
 type PendingAddition = {
-    action: Exclude<TreeEditAction, "remove">;
+    action: Exclude<TreeEditAction, "remove" | "trace">;
     nodeId: string;
 };
 
@@ -39,12 +49,15 @@ const quantifierSymbols = ["∀x", "∃x"];
 export function SyntaxTree({
     tree,
     errorNodeIds,
+    environmentErrorNodeIds,
+    evaluation,
     stale,
     editMode,
     functionSymbols,
     predicateSymbols,
     selectedNode,
     onSelectNode,
+    onRequestEnvironment,
     onTreeChange,
 }: SyntaxTreeProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -52,18 +65,27 @@ export function SyntaxTree({
     const treeRef = useRef(tree);
     const interactionRef = useRef({ editMode, selectedNode });
     const errorNodeIdsRef = useRef(errorNodeIds);
-    const callbacksRef = useRef({ onSelectNode, onTreeChange });
+    const environmentErrorNodeIdsRef = useRef(environmentErrorNodeIds);
+    const traceByNodeId = useMemo(
+        () => evaluation ? indexRelevantEvaluationTraces(evaluation.trace) : new Map<string, EvaluationTrace>(),
+        [evaluation],
+    );
+    const traceByNodeIdRef = useRef(traceByNodeId);
+    const callbacksRef = useRef({ onRequestEnvironment, onSelectNode, onTreeChange });
     const editorRef = useRef<HTMLDivElement>(null);
     const skipRenameCommitRef = useRef(false);
     const [rendererError, setRendererError] = useState<string | null>(null);
     const [pendingAddition, setPendingAddition] = useState<PendingAddition | null>(null);
     const [additionDraft, setAdditionDraft] = useState("");
     const [renameDraft, setRenameDraft] = useState("");
+    const [openTraceNodeId, setOpenTraceNodeId] = useState<string | null>(null);
 
     treeRef.current = tree;
     interactionRef.current = { editMode, selectedNode };
     errorNodeIdsRef.current = errorNodeIds;
-    callbacksRef.current = { onSelectNode, onTreeChange };
+    environmentErrorNodeIdsRef.current = environmentErrorNodeIds;
+    traceByNodeIdRef.current = traceByNodeId;
+    callbacksRef.current = { onRequestEnvironment, onSelectNode, onTreeChange };
 
     useEffect(() => {
         const container = containerRef.current;
@@ -76,6 +98,11 @@ export function SyntaxTree({
                 const renderer = new SyntaxTreeRenderer(container, {
                     onSelectNode: (nodeId) => callbacksRef.current.onSelectNode(nodeId),
                     onEditNode: (action, nodeId) => {
+                        if (action === "trace") {
+                            if (traceByNodeIdRef.current.has(nodeId)) setOpenTraceNodeId(nodeId);
+                            else callbacksRef.current.onRequestEnvironment();
+                            return;
+                        }
                         const currentTree = treeRef.current;
                         if (!currentTree) return;
                         if (action === "remove") {
@@ -89,6 +116,8 @@ export function SyntaxTree({
                 });
                 rendererRef.current = renderer;
                 renderer.setErrorNodes(errorNodeIdsRef.current);
+                renderer.setIncompleteNodes(environmentErrorNodeIdsRef.current);
+                renderer.setNodeTruthValues(getNodeTruthValues(traceByNodeIdRef.current));
                 if (treeRef.current) renderer.setTree(treeRef.current);
                 const interaction = interactionRef.current;
                 renderer.setInteraction(interaction.editMode, interaction.selectedNode);
@@ -122,13 +151,23 @@ export function SyntaxTree({
     }, [errorNodeIds]);
 
     useEffect(() => {
-        if (!pendingAddition) return;
+        rendererRef.current?.setIncompleteNodes(environmentErrorNodeIds);
+    }, [environmentErrorNodeIds]);
+
+    useEffect(() => {
+        rendererRef.current?.setNodeTruthValues(getNodeTruthValues(traceByNodeId));
+        if (openTraceNodeId && !traceByNodeId.has(openTraceNodeId)) setOpenTraceNodeId(null);
+    }, [openTraceNodeId, traceByNodeId]);
+
+    useEffect(() => {
+        if (!pendingAddition && !openTraceNodeId) return;
         const cancelOnEscape = (event: KeyboardEvent) => {
             if (event.key === "Escape") setPendingAddition(null);
+            if (event.key === "Escape") setOpenTraceNodeId(null);
         };
         window.addEventListener("keydown", cancelOnEscape);
         return () => window.removeEventListener("keydown", cancelOnEscape);
-    }, [pendingAddition]);
+    }, [openTraceNodeId, pendingAddition]);
 
     const selected = tree && selectedNode ? findSyntaxNode(tree, selectedNode) : null;
 
@@ -150,7 +189,7 @@ export function SyntaxTree({
         setRenameDraft(label);
     };
 
-    const editTree = (action: TreeEditAction) => {
+    const editTree = (action: Exclude<TreeEditAction, "trace">) => {
         if (!tree || !selectedNode) return;
         if (action === "remove") {
             onTreeChange(removeSyntaxNode(tree, selectedNode));
@@ -313,6 +352,13 @@ export function SyntaxTree({
                     </form>
                 </div>
             )}
+
+            {openTraceNodeId && traceByNodeId.get(openTraceNodeId) && (
+                <NodeTraceDialog
+                    onClose={() => setOpenTraceNodeId(null)}
+                    trace={traceByNodeId.get(openTraceNodeId)!}
+                />
+            )}
         </div>
     );
 }
@@ -320,12 +366,20 @@ export function SyntaxTree({
 function applyTreeAddition(
     tree: SyntaxNode,
     nodeId: string,
-    action: Exclude<TreeEditAction, "remove">,
+    action: Exclude<TreeEditAction, "remove" | "trace">,
     label: string,
     kind: SyntaxNodeKind,
 ): SyntaxNode {
     if (action === "wrap") return wrapSyntaxNode(tree, nodeId, label, kind);
     return addSyntaxChild(tree, nodeId, label, kind);
+}
+
+function getNodeTruthValues(traces: ReadonlyMap<string, EvaluationTrace>): Record<string, boolean> {
+    return Object.fromEntries(
+        [...traces.entries()]
+            .filter(([, trace]) => isLogicalOperatorTrace(trace))
+            .map(([nodeId, trace]) => [nodeId, trace.value]),
+    );
 }
 
 type SymbolCategoryProps = {

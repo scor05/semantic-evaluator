@@ -1,4 +1,5 @@
 import type { DemonstrationResult, InterpretationError } from "../../types/logic";
+import type { EvaluationResult } from "../../domain/evaluation";
 import type { SyntaxNode } from "../../domain/syntaxTree";
 import type { FormulaValidation } from "../../domain/validation";
 import { InteractionHint } from "./InteractionHint";
@@ -13,6 +14,8 @@ type WorkspaceProps = {
     tree: SyntaxNode | null;
     treeIsStale: boolean;
     errorNodeIds: string[];
+    environmentErrorNodeIds: string[];
+    evaluation: EvaluationResult | null;
     validation: FormulaValidation;
     editMode: boolean;
     environmentMissing: boolean;
@@ -25,6 +28,7 @@ type WorkspaceProps = {
     onOpenHelp: () => void;
     onOpenEvidence: () => void;
     onOpenValidation: () => void;
+    onRequestEnvironment: () => void;
     onSelectNode: (nodeId: string | null) => void;
     onTreeChange: (tree: SyntaxNode) => void;
 };
@@ -34,6 +38,8 @@ export function Workspace({
     tree,
     treeIsStale,
     errorNodeIds,
+    environmentErrorNodeIds,
+    evaluation,
     validation,
     editMode,
     environmentMissing,
@@ -46,6 +52,7 @@ export function Workspace({
     onOpenHelp,
     onOpenEvidence,
     onOpenValidation,
+    onRequestEnvironment,
     onSelectNode,
     onTreeChange,
 }: WorkspaceProps) {
@@ -57,13 +64,17 @@ export function Workspace({
                 interpretationErrors={interpretationErrors}
                 onOpenHelp={onOpenHelp}
                 onOpenValidation={onOpenValidation}
+                result={result}
                 validation={validation}
             />
             <SyntaxTree
                 editMode={editMode}
                 errorNodeIds={errorNodeIds}
+                evaluation={evaluation}
+                environmentErrorNodeIds={environmentErrorNodeIds}
                 functionSymbols={functionSymbols}
                 onSelectNode={onSelectNode}
+                onRequestEnvironment={onRequestEnvironment}
                 onTreeChange={onTreeChange}
                 predicateSymbols={predicateSymbols}
                 selectedNode={selectedNode}

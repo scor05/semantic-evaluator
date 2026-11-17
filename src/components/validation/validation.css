@@ -142,9 +142,10 @@
 
 .validation-modal h2 {
   margin: 7px 0 16px;
-  font-family: var(--font-secondary-title);
+  font-family: var(--font-tertiary-title);
   font-size: var(--size-secondary-title);
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 .validation-modal h3 {

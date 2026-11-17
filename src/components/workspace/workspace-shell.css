@@ -73,7 +73,7 @@
 .brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
   margin-left: 13px;
 }
 
@@ -172,4 +172,17 @@
 .formula-status.is-invalid .status-dot {
   background: #f1a94b;
   box-shadow: 0 0 8px rgba(241, 169, 75, 0.85);
+}
+
+.formula-status.is-true {
+  color: var(--mint);
+}
+
+.formula-status.is-false {
+  color: var(--danger);
+}
+
+.formula-status.is-false .status-dot {
+  background: var(--danger);
+  box-shadow: 0 0 8px rgba(255, 123, 120, 0.85);
 }

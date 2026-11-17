@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { buildInterpretation, evaluateFormula, EvaluationError } from "../src/domain/evaluation";
-import { validateFormulaText } from "../src/domain/validation";
-import type { FunctionDefinition, PredicateDefinition } from "../src/types/logic";
+import {
+    buildInterpretation,
+    evaluateFormula,
+    EvaluationError,
+    indexRelevantEvaluationTraces,
+} from "../domain/evaluation";
+import { validateFormulaText } from "../domain/validation";
+import type { FunctionDefinition, PredicateDefinition } from "../types/logic";
 
 type Setup = {
     domain: string[];
@@ -73,6 +78,8 @@ describe("ejemplo 7.2: D = {1,2,3}, Pᴵ = {1,2}, Rᴵ = {(1,3),(2,1),(3,2)}", (
             { variable: "x", value: "1" },
             { variable: "y", value: "1" },
         ]);
+        const indexed = indexRelevantEvaluationTraces(result.trace);
+        expect(last && indexed.get(last.nodeId)?.bindings).toEqual(last?.bindings);
     });
 });
 
@@ -135,11 +142,17 @@ describe("ejemplo 8.5: dependencia del entorno", () => {
         ]);
     });
 
+    test("los elementos del dominio pueden escribirse como términos literales", () => {
+        const result = evaluate("∀x P(x,0)");
+        expect(result.value).toBe(false);
+        expect(result.trace.quantifier?.decisiveElement).toBe("0");
+    });
+
     test("un árbol con valores ya asignados por el entorno se evalúa como fórmula abierta", () => {
         const validation = validateFormulaText("P(x,y)", {
             domain: ["0", "1", "2"],
             functions: [],
-            predicates: [{ id: 1, name: "P", arity: 2 }],
+            predicates: [{ name: "P", arity: 2 }],
         });
         const tree = validation.tree!;
         const substituted = {
@@ -178,7 +191,7 @@ describe("ejemplo 8.5: dependencia del entorno", () => {
         const validation = validateFormulaText("P(x,y)", {
             domain: ["0", "1", "2"],
             functions: [],
-            predicates: [{ id: 1, name: "P", arity: 2 }],
+            predicates: [{ name: "P", arity: 2 }],
         });
         const interpretation = buildInterpretation({
             domain: ["0", "1", "2"],
