@@ -8,7 +8,7 @@ Los integrantes del grupo somos:
 
 - Santiago Cordero (Carnet 24472)
 - Diego González (Carnet 24170)
-- Jorge Morales (Carnet )
+- Jorge Morales (Carnet 24284)
 
 Y la sección del curso en la que estamos es la 10.
 
