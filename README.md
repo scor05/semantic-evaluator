@@ -7,7 +7,7 @@ En este repositorio está nuestra implementación de una aplicación con una int
 Los integrantes del grupo somos:
 
 - Santiago Cordero (Carnet 24472)
-- Diego González (Carnet )
+- Diego González (Carnet 24170)
 - Jorge Morales (Carnet )
 
 Y la sección del curso en la que estamos es la 10.
